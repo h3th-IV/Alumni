@@ -135,6 +135,7 @@ func (db *mysqlDatabase) GetUserPortfolio(ctx context.Context, user_email string
 	if err != nil {
 		return nil, err
 	}
+	defer getPortfolio.Close()
 	for getPortfolio.Next() {
 		err := getPortfolio.Scan(&portfolioOrder.Id, &portfolioOrder.Type, &portfolioOrder.Security, &portfolioOrder.Unit, &portfolioOrder.Status, &portfolioOrder.Cancelled, &portfolioOrder.UserID, &portfolioOrder.UserEmail, &portfolioOrder.CreatedAt, &portfolioOrder.UpdatedAt)
 		if err != nil {
@@ -152,6 +153,7 @@ func (db *mysqlDatabase) GetUserTransactions(ctx context.Context, user_email str
 	if err != nil {
 		return nil, err
 	}
+	defer getTransactions.Close()
 	for getTransactions.Next() {
 		err := getTransactions.Scan(&transaction.Id, &transaction.FromUserID, &transaction.FromUserEmail, &transaction.ToUserID, &transaction.ToUserEmail, &transaction.TransactionType, &transaction.CreatedAt, &transaction.UpdatedAt, &transaction.Amount, &transaction.UserEmail)
 		if err != nil {

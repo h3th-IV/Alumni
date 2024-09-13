@@ -65,7 +65,6 @@ func (runner *StartRunner) Run(c *cli.Context) error {
 		return fmt.Errorf("unable to open connection to MySQL Server: %s", err.Error())
 	}
 
-	// logger.Debug("MYSQL Connection", zap.String("dsn", databaseConfig.FormatDSN()), zap.Any("mysqlDB", mysqlDB))
 	if mysqlDatabaseClient, err = database.NewMySQLDatabase(mysqlDbInstance); err != nil {
 		return fmt.Errorf("unable to create MySQL database client: %s", err.Error())
 	}
