@@ -138,6 +138,5 @@ func (handler *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	dataresp["degree"] = degree
 	dataresp["phone"] = phone
 	dataresp["session_key"] = newsessionkey
-	handler.logger.Error("user successfully created", zap.Bool("registration success", createUser))
 	apiResponse(w, GetSuccessResponse(dataresp, registerTTL), http.StatusOK)
 }
