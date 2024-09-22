@@ -88,7 +88,6 @@ CREATE TABLE chat_messages (
     FOREIGN KEY (recipient) REFERENCES users(id) ON DELETE SET NULL
 );
 
-
 --table for storing group information
 CREATE TABLE groups (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -120,4 +119,14 @@ CREATE TABLE group_messages (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-
+-- table connections
+CREATE TABLE connections (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    from int NOT NULL,
+    to int NOT NULL,
+    from_connections SET('') NOT NULL,
+    to_connections SET('') NOT NULL,
+    FOREIGN KEY(from) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY(to) REFERENCES users(id) ON DELETE CASCADE,
+    created_at timestamp DEFAULT CURRENT_TIMESTAMP
+);
