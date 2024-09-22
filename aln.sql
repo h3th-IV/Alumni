@@ -121,3 +121,26 @@ CREATE TABLE group_messages (
 );
 
 
+--able to store connection requests
+CREATE TABLE connection_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    from_id INT NOT NULL,
+    to_id INT NOT NULL,
+    status ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (from_id) REFERENCES users(id),
+    FOREIGN KEY (to_id) REFERENCES users(id)
+);
+
+--table to store actual connections between users
+CREATE TABLE connections (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    connection_user_id INT NOT NULL,
+    connected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (connection_user_id) REFERENCES users(id)
+);
+
+

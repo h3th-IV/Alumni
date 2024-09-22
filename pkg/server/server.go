@@ -20,14 +20,16 @@ type GracefulShutdownServer struct {
 	ProfileHandler  http.Handler // profile
 	HomeHandler     http.Handler
 
-	AddForumHandler    http.Handler // add forum post
-	AllForumHandler    http.Handler // get all posts
-	SingleForumHandler http.Handler // get one post
-	ChatHandler        http.Handler // chat a user
-	CreateGroup        http.Handler
-	AddUserToGroup     http.Handler
-	SendGroupMessage   http.Handler
-	GetChatHistory     http.Handler
+	AddForumHandler       http.Handler // add forum post
+	AllForumHandler       http.Handler // get all posts
+	SingleForumHandler    http.Handler // get one post
+	ChatHandler           http.Handler // chat a user
+	CreateGroup           http.Handler
+	AddUserToGroup        http.Handler
+	SendGroupMessage      http.Handler
+	GetChatHistory        http.Handler
+	SendConnectionRequest http.Handler
+	AcceptHandler         http.Handler
 
 	CommentHandler http.Handler //make comments
 
@@ -59,6 +61,8 @@ func (server *GracefulShutdownServer) getRouter() *mux.Router {
 	router.Handle("/groups/create", authRoute.ThenFunc(server.CreateGroup.ServeHTTP)).Methods(http.MethodPost)
 	router.Handle("/groups/add-member", authRoute.ThenFunc(server.AddUserToGroup.ServeHTTP)).Methods(http.MethodPost)
 	router.Handle("/groups/send-message", authRoute.ThenFunc(server.SendGroupMessage.ServeHTTP)).Methods(http.MethodPost)
+	router.Handle("/connections/send-new", authRoute.ThenFunc(server.SendConnectionRequest.ServeHTTP)).Methods(http.MethodPost)
+	router.Handle("/connections/accept", authRoute.ThenFunc(server.AcceptHandler.ServeHTTP)).Methods(http.MethodPost)
 
 	//no auth routes
 	router.Handle("/forums", server.AllForumHandler).Methods(http.MethodGet)

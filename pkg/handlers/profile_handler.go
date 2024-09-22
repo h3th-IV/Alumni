@@ -28,8 +28,15 @@ func (handler *profileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	userInfo, err := utils.AuthenticateUser(r.Context(), handler.logger, handler.mysqlclient)
 	if err != nil {
 		profileres["err"] = "please sign in to access this page"
-		handler.logger.Debug("unauthorized user")
+		handler.logger.Warn("unauthorized user")
 		apiResponse(w, GetErrorResponseBytes(profileres["err"], profileTTL, nil), http.StatusUnauthorized)
+		return
+	}
+	connections, err := handler.mysqlclient.GetUserConnections(r.Context(), userInfo.Id)
+	if err != nil {
+		profileres["err"] = "unable to fecth user connections"
+		handler.logger.Error("err fetching user connections")
+		apiResponse(w, GetErrorResponseBytes(profileres, profileTTL, nil), http.StatusUnauthorized)
 		return
 	}
 	profileres["id"] = userInfo.Id
@@ -40,5 +47,6 @@ func (handler *profileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	profileres["current_job"] = userInfo.CurrentJob
 	profileres["linkedin_profile"] = userInfo.LinkedinProfile
 	profileres["twitter_profile"] = userInfo.TwitterProfile
+	profileres["connection"] = connections
 	apiResponse(w, GetSuccessResponse(profileres, profileTTL), http.StatusOK)
 }

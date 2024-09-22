@@ -1,13 +1,20 @@
 package model
 
+import "time"
+
 type ConnectionRequest struct {
-	Id        string `json:"connectionid"` /* relative connection id */
-	Requester string `json:"requester"`    /* session key for request initiator */
-	Accepter  string `json:"accepter"`     /* session key for request receiver */
+	Id         int       `json:"id"`
+	FromUserId int       `json:"from_user_id"`
+	ToUserId   int       `json:"to_user_id"`
+	Status     string    `json:"status"` //enum kinda-- pending, accepted, rejected
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
+// connection already accaepted --like linkedIn networks
 type Connection struct {
-	ConnectionRequestId string   `json:"connection_request_id"` /* connection initialized */
-	ConnectionExpired   bool     `json:"connection_expired"`    /* did connection expire */
-	ConnectedUsers      []string `json:"connected_users"`       /* which users are involved */
+	Id               int       `json:"id"`
+	UserId           int       `json:"user_id"`
+	ConnectionUserId int       `json:"connection_user_id"`
+	ConnectedAt      time.Time `json:"connected_at"`
 }

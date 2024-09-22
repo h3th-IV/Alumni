@@ -17,52 +17,62 @@ var (
 )
 
 type mysqlDatabase struct {
-	createUser           *sql.Stmt
-	checkUser            *sql.Stmt
-	getUserByEmail       *sql.Stmt
-	getBySessionKey      *sql.Stmt
-	getUserPortfolios    *sql.Stmt
-	getUserTransactions  *sql.Stmt
-	createNewTransaction *sql.Stmt
-	addNewForumPost      *sql.Stmt
-	getSingleForumPost   *sql.Stmt
-	getAllForums         *sql.Stmt
-	sendMessage          *sql.Stmt
-	addComment           *sql.Stmt
-	getCommentsByForum   *sql.Stmt
-	createGroup          *sql.Stmt
-	addGroupMember       *sql.Stmt
-	sendGroupMessage     *sql.Stmt
-	getGroupMessages     *sql.Stmt
-	getGroupAdmin        *sql.Stmt
-	checkIfMember        *sql.Stmt
-	getChats             *sql.Stmt
+	createUser              *sql.Stmt
+	checkUser               *sql.Stmt
+	getUserByEmail          *sql.Stmt
+	getBySessionKey         *sql.Stmt
+	getUserPortfolios       *sql.Stmt
+	getUserTransactions     *sql.Stmt
+	createNewTransaction    *sql.Stmt
+	addNewForumPost         *sql.Stmt
+	getSingleForumPost      *sql.Stmt
+	getAllForums            *sql.Stmt
+	sendMessage             *sql.Stmt
+	addComment              *sql.Stmt
+	getCommentsByForum      *sql.Stmt
+	createGroup             *sql.Stmt
+	addGroupMember          *sql.Stmt
+	sendGroupMessage        *sql.Stmt
+	getGroupMessages        *sql.Stmt
+	getGroupAdmin           *sql.Stmt
+	checkIfMember           *sql.Stmt
+	getChats                *sql.Stmt
+	createConnectionRequest *sql.Stmt
+	getConnectionRequest    *sql.Stmt
+	updateConnectionRequest *sql.Stmt
+	createConnection        *sql.Stmt
+	getUserConnections      *sql.Stmt
 }
 
 func NewMySQLDatabase(db *sql.DB) (*mysqlDatabase, error) {
 	var (
-		createUser           = "INSERT INTO users(username, password, email, degree, grad_year, current_job, phone, session_key, profile_picture, linkedin_profile, twitter_profile) VALUES(?,?,?,?,?,?,?,?,?,?,?);"
-		checkUser            = "SELECT * FROM users WHERE email = ? AND password=?;"
-		getUserByEmail       = "SELECT * FROM users WHERE email = ?;"
-		getBySessionKey      = "SELECT * FROM users WHERE session_key=?;"
-		getUserPortfolios    = "SELECT * FROM portfolio_orders WHERE user_email = ?;"
-		getUserTransactions  = "SELECT * FROM transactions WHERE user_email = ?;"
-		createNewTransaction = "INSERT INTO transactions(from_user_id, from_user_email, to_user_id, to_user_email, type, created_at, updated_at, amount, user_email) VALUES(?,?,?,?,?,?,?,?,?);"
-		addNewForumPost      = "INSERT INTO forums(title, description, author, slug, created_at, updated_at) VALUES(?,?,?,?,?,?);"
-		getSingleForumPost   = "SELECT * FROM forums WHERE slug = ?;"
-		getAllForums         = "SELECT title, description, author, slug, created_at, updated_at FROM forums;"
-		sendMessage          = "INSERT INTO chat_messages(sender, recipient, message, created_at, updated_at) VALUES(?,?,?,?,?);"
-		addComment           = "INSERT INTO comments(user_id, forum_id, comment) VALUES(?, ?, ?);"
-		getCommentsByForum   = "SELECT c.id, u.username, c.comment, c.created_at FROM comments c JOIN users u ON c.user_id = u.id WHERE c.forum_id = ? ORDER BY c.created_at ASC;"
-		createGroup          = "INSERT INTO `groups` (name, created_by) VALUES (?,?);"
-		addGroupMember       = "INSERT INTO group_members (group_id, user_id) VALUES (?, ?);"
-		sendGroupMessage     = "INSERT INTO group_messages (group_id, user_id, message) VALUES (?, ?, ?);"
-		getGroupMessages     = "SELECT gm.id, u.username, gm.message, gm.created_at FROM group_messages gm JOIN users u ON gm.user_id = u.id WHERE gm.group_id = ? ORDER BY gm.created_at ASC;"
-		getGroupAdmin        = "SELECT u.id, u.username, u.email FROM `groups` g JOIN users u ON g.created_by = u.id WHERE g.id = ?;"
-		checkIfMember        = "SELECT COUNT(*) FROM group_members WHERE group_id = ? AND user_id = ?;"
-		getChats             = "SELECT id, sender, recipient, message, created_at, updated_at FROM chat_messages WHERE (sender = ? AND recipient = ?) OR (sender = ? AND recipient = ?) ORDER BY created_at ASC;"
-		database             = &mysqlDatabase{}
-		err                  error
+		createUser              = "INSERT INTO users(username, password, email, degree, grad_year, current_job, phone, session_key, profile_picture, linkedin_profile, twitter_profile) VALUES(?,?,?,?,?,?,?,?,?,?,?);"
+		checkUser               = "SELECT * FROM users WHERE email = ? AND password=?;"
+		getUserByEmail          = "SELECT * FROM users WHERE email = ?;"
+		getBySessionKey         = "SELECT * FROM users WHERE session_key=?;"
+		getUserPortfolios       = "SELECT * FROM portfolio_orders WHERE user_email = ?;"
+		getUserTransactions     = "SELECT * FROM transactions WHERE user_email = ?;"
+		createNewTransaction    = "INSERT INTO transactions(from_user_id, from_user_email, to_user_id, to_user_email, type, created_at, updated_at, amount, user_email) VALUES(?,?,?,?,?,?,?,?,?);"
+		addNewForumPost         = "INSERT INTO forums(title, description, author, slug, created_at, updated_at) VALUES(?,?,?,?,?,?);"
+		getSingleForumPost      = "SELECT * FROM forums WHERE slug = ?;"
+		getAllForums            = "SELECT title, description, author, slug, created_at, updated_at FROM forums;"
+		sendMessage             = "INSERT INTO chat_messages(sender, recipient, message, created_at, updated_at) VALUES(?,?,?,?,?);"
+		addComment              = "INSERT INTO comments(user_id, forum_id, comment) VALUES(?, ?, ?);"
+		getCommentsByForum      = "SELECT c.id, u.username, c.comment, c.created_at FROM comments c JOIN users u ON c.user_id = u.id WHERE c.forum_id = ? ORDER BY c.created_at ASC;"
+		createGroup             = "INSERT INTO `groups` (name, created_by) VALUES (?,?);"
+		addGroupMember          = "INSERT INTO group_members (group_id, user_id) VALUES (?, ?);"
+		sendGroupMessage        = "INSERT INTO group_messages (group_id, user_id, message) VALUES (?, ?, ?);"
+		getGroupMessages        = "SELECT gm.id, u.username, gm.message, gm.created_at FROM group_messages gm JOIN users u ON gm.user_id = u.id WHERE gm.group_id = ? ORDER BY gm.created_at ASC;"
+		getGroupAdmin           = "SELECT u.id, u.username, u.email FROM `groups` g JOIN users u ON g.created_by = u.id WHERE g.id = ?;"
+		checkIfMember           = "SELECT COUNT(*) FROM group_members WHERE group_id = ? AND user_id = ?;"
+		getChats                = "SELECT id, sender, recipient, message, created_at, updated_at FROM chat_messages WHERE (sender = ? AND recipient = ?) OR (sender = ? AND recipient = ?) ORDER BY created_at ASC;"
+		createConnectionRequest = "INSERT INTO connection_requests (from_id, to_id) VALUES (?, ?);"
+		getConnectionRequest    = "SELECT id, from_id, to_id, status, created_at, updated_at FROM connection_requests WHERE from_id = ? AND to_id = ?;"
+		updateConnectionRequest = "UPDATE connection_requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;"
+		createConnection        = "INSERT INTO connections (user_id, connection_user_id) VALUES (?, ?);"
+		getUserConnections      = "SELECT id, user_id, connection_user_id, connected_at FROM connections WHERE user_id = ?;"
+		database                = &mysqlDatabase{}
+		err                     error
 	)
 	if database.createUser, err = db.Prepare(createUser); err != nil {
 		return nil, err
@@ -122,6 +132,21 @@ func NewMySQLDatabase(db *sql.DB) (*mysqlDatabase, error) {
 		return nil, err
 	}
 	if database.getChats, err = db.Prepare(getChats); err != nil {
+		return nil, err
+	}
+	if database.createConnectionRequest, err = db.Prepare(createConnectionRequest); err != nil {
+		return nil, err
+	}
+	if database.getConnectionRequest, err = db.Prepare(getConnectionRequest); err != nil {
+		return nil, err
+	}
+	if database.updateConnectionRequest, err = db.Prepare(updateConnectionRequest); err != nil {
+		return nil, err
+	}
+	if database.createConnection, err = db.Prepare(createConnection); err != nil {
+		return nil, err
+	}
+	if database.getUserConnections, err = db.Prepare(getUserConnections); err != nil {
 		return nil, err
 	}
 	return database, nil
@@ -414,7 +439,7 @@ func (db *mysqlDatabase) FetchUserChats(ctx context.Context, userID1, userID2 in
 
 	rows, err := db.getChats.QueryContext(ctx, userID1, userID2, userID2, userID1)
 	if err != nil {
-		log.Println("Error fetching user chats:", err)
+		log.Println("err fetching user chats:", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -429,6 +454,85 @@ func (db *mysqlDatabase) FetchUserChats(ctx context.Context, userID1, userID2 in
 		chats = append(chats, &chat)
 	}
 	return chats, nil
+}
+
+func (db *mysqlDatabase) CreateConnectionRequest(ctx context.Context, fromUserId, toUserId int) (bool, error) {
+	con_req, err := db.createConnectionRequest.ExecContext(ctx, fromUserId, toUserId)
+	if err != nil {
+		log.Println("err creating connection request:", err)
+		return false, err
+	}
+	con_req_lid, err := con_req.LastInsertId()
+	if err != nil {
+		return false, err
+	}
+	if con_req_lid <= 0 {
+		log.Printf("last insert id: %d", con_req_lid)
+		return false, fmt.Errorf("unable to create new connection request")
+	}
+	return true, nil
+}
+
+func (db *mysqlDatabase) GetConnectionRequest(ctx context.Context, fromUserId, toUserId int) (*model.ConnectionRequest, error) {
+	req := &model.ConnectionRequest{}
+	err := db.getConnectionRequest.QueryRowContext(ctx, fromUserId, toUserId).Scan(&req.Id, &req.FromUserId, &req.ToUserId, &req.Status, &req.CreatedAt, &req.UpdatedAt)
+	if err != nil {
+		log.Println("err fetching connection request:", err)
+		return nil, err
+	}
+	return req, nil
+}
+
+func (db *mysqlDatabase) UpdateConnectionRequest(ctx context.Context, reqId int, status string) (bool, error) {
+	con_req, err := db.updateConnectionRequest.ExecContext(ctx, status, reqId)
+	if err != nil {
+		log.Println("err updating connection request:", err)
+		return false, err
+	}
+	con_req_rwa, err := con_req.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	if con_req_rwa <= 0 {
+		return false, fmt.Errorf("err updating connection request")
+	}
+	return true, nil
+}
+
+func (db *mysqlDatabase) CreateConnection(ctx context.Context, userId, connectionUserId int) (bool, error) {
+	con_req, err := db.createConnection.ExecContext(ctx, userId, connectionUserId, time.Now())
+	if err != nil {
+		log.Println("Error creating connection:", err)
+		return false, err
+	}
+	con_req_lid, err := con_req.LastInsertId()
+	if err != nil {
+		return false, err
+	}
+	if con_req_lid <= 0 {
+		log.Printf("last insert id: %d", con_req_lid)
+		return false, fmt.Errorf("unable to create new connection request")
+	}
+	return true, nil
+}
+
+func (db *mysqlDatabase) GetUserConnections(ctx context.Context, userId int) ([]*model.Connection, error) {
+	rows, err := db.getUserConnections.QueryContext(ctx, userId)
+	if err != nil {
+		log.Println("Error fetching user connections:", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var connections []*model.Connection
+	for rows.Next() {
+		var conn model.Connection
+		if err := rows.Scan(&conn.Id, &conn.UserId, &conn.ConnectionUserId, &conn.ConnectedAt); err != nil {
+			return nil, err
+		}
+		connections = append(connections, &conn)
+	}
+	return connections, nil
 }
 
 func (db *mysqlDatabase) Close() error {
@@ -450,5 +554,10 @@ func (db *mysqlDatabase) Close() error {
 	db.getGroupAdmin.Close()
 	db.checkIfMember.Close()
 	db.getChats.Close()
+	db.createConnection.Close()
+	db.createConnectionRequest.Close()
+	db.getConnectionRequest.Close()
+	db.getUserConnections.Close()
+	db.updateConnectionRequest.Close()
 	return nil
 }

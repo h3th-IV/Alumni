@@ -38,4 +38,9 @@ type Database interface {
 	GetGroupCreator(ctx context.Context, groupID int) (*model.User, error)
 	CheckGroupMembership(ctx context.Context, groupID int, userID int) (bool, error)
 	FetchUserChats(ctx context.Context, userID1, userID2 int) ([]*model.Chat, error)
+	CreateConnectionRequest(ctx context.Context, fromUserId, toUserId int) (bool, error)
+	GetConnectionRequest(ctx context.Context, fromUserId, toUserId int) (*model.ConnectionRequest, error)
+	UpdateConnectionRequest(ctx context.Context, reqId int, status string) (bool, error)
+	CreateConnection(ctx context.Context, userId, connectionUserId int) (bool, error)
+	GetUserConnections(ctx context.Context, userId int) ([]*model.Connection, error)
 }

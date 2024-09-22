@@ -87,20 +87,22 @@ func (runner *StartRunner) Run(c *cli.Context) error {
 	}
 	utils.Logger.Info("connected to database successfully")
 	server := &server.GracefulShutdownServer{
-		HTTPListenAddr:     runner.ListenAddr,
-		RegisterHandler:    handlers.NewRegisterHandler(logger, mysqlDatabaseClient),
-		LoginHandler:       handlers.NewLoginHandler(logger, mysqlDatabaseClient),
-		ProfileHandler:     handlers.NewProfileHandler(logger, mysqlDatabaseClient),
-		HomeHandler:        handlers.NewHomeHandler(),
-		AddForumHandler:    handlers.NewForumStruct(logger, mysqlDatabaseClient),
-		AllForumHandler:    handlers.NewAForumStruct(logger, mysqlDatabaseClient),
-		SingleForumHandler: handlers.NewSForumStruct(logger, mysqlDatabaseClient),
-		ChatHandler:        handlers.NewChat(logger, mysqlDatabaseClient),
-		CommentHandler:     handlers.NewCommentHandler(logger, mysqlDatabaseClient),
-		CreateGroup:        handlers.NewCreateGroupHandler(logger, mysqlDatabaseClient),
-		AddUserToGroup:     handlers.NewAddGroupMemberHandler(logger, mysqlDatabaseClient),
-		SendGroupMessage:   handlers.NewSendGroupMessageHandler(logger, mysqlDatabaseClient),
-		GetChatHistory:     handlers.NewGetUserChatsHistoryHandler(logger, mysqlDatabaseClient),
+		HTTPListenAddr:        runner.ListenAddr,
+		RegisterHandler:       handlers.NewRegisterHandler(logger, mysqlDatabaseClient),
+		LoginHandler:          handlers.NewLoginHandler(logger, mysqlDatabaseClient),
+		ProfileHandler:        handlers.NewProfileHandler(logger, mysqlDatabaseClient),
+		HomeHandler:           handlers.NewHomeHandler(),
+		AddForumHandler:       handlers.NewForumStruct(logger, mysqlDatabaseClient),
+		AllForumHandler:       handlers.NewAForumStruct(logger, mysqlDatabaseClient),
+		SingleForumHandler:    handlers.NewSForumStruct(logger, mysqlDatabaseClient),
+		ChatHandler:           handlers.NewChat(logger, mysqlDatabaseClient),
+		CommentHandler:        handlers.NewCommentHandler(logger, mysqlDatabaseClient),
+		CreateGroup:           handlers.NewCreateGroupHandler(logger, mysqlDatabaseClient),
+		AddUserToGroup:        handlers.NewAddGroupMemberHandler(logger, mysqlDatabaseClient),
+		SendGroupMessage:      handlers.NewSendGroupMessageHandler(logger, mysqlDatabaseClient),
+		GetChatHistory:        handlers.NewGetUserChatsHistoryHandler(logger, mysqlDatabaseClient),
+		SendConnectionRequest: handlers.NewSendConnectionRequestHandler(logger, mysqlDatabaseClient),
+		AcceptHandler:         handlers.NewAcceptConnectionRequestHandler(logger, mysqlDatabaseClient),
 	}
 	server.Start()
 	return nil
