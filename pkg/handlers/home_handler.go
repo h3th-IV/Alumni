@@ -13,5 +13,5 @@ func NewHomeHandler() *homeHandler {
 func (handler *homeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	homedata := map[string]interface{}{}
 	homedata["success"] = true
-	w.Write(GetSuccessResponse(homedata, 30))
+	apiResponse(w, GetSuccessResponse(homedata, 30), http.StatusOK)
 }

@@ -1,12 +1,16 @@
 package middleware
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"reflect"
+	"strings"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/jim-nnamdi/jinx/pkg/database/mysql"
 	"github.com/jim-nnamdi/jinx/pkg/model"
+	"github.com/jim-nnamdi/jinx/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -68,4 +72,67 @@ func (smw *SessionMiddleware) Middleware(next http.Handler) http.Handler {
 		ctx := model.NewContext(r.Context(), uInfo)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func middlewareResponse(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application-json")
+	w.WriteHeader(statusCode)
+	w.Write([]byte(message))
+}
+func JWTAuthRoutes(next http.Handler, secret string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//fetch token from request
+		AuthToken := r.Header.Get("Authorization")
+		if AuthToken == "" {
+			middlewareResponse(w, "please login to access resources", http.StatusUnauthorized)
+			utils.Logger.Error("no auth token was provided")
+			return
+		}
+		jwToken := strings.Split(AuthToken, " ")[1]
+
+		token, err := jwt.Parse(jwToken, func(t *jwt.Token) (interface{}, error) {
+			return []byte(secret), nil
+		})
+
+		//check err
+		if err != nil {
+			if strings.Contains(err.Error(), "Token is expired") {
+				middlewareResponse(w, "session expired, please sign in", http.StatusUnauthorized)
+				utils.Logger.Error("err parsing token or invalid token", zap.Error(err))
+				return
+			}
+			middlewareResponse(w, "please signIn to access resources", http.StatusUnauthorized)
+			utils.Logger.Error("err parsing token or invalid token", zap.Error(err))
+			return
+		}
+
+		if !token.Valid {
+			middlewareResponse(w, "please signIn to access resources", http.StatusUnauthorized)
+			utils.Logger.Error("invalid token")
+			return
+		}
+		//check claims
+		tokenClaims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			middlewareResponse(w, "please signIn to access resources", http.StatusUnauthorized)
+			utils.Logger.Error("invalid token claims", zap.Bool("", ok))
+			return
+		}
+
+		sessionKey, ok := tokenClaims["user"]
+		if !ok {
+			middlewareResponse(w, "please signIn to access resources", http.StatusUnauthorized)
+			utils.Logger.Error("user is not Authorized")
+			return
+		}
+
+		//store token(user.sessionKey)
+		ctx := context.WithValue(r.Context(), utils.UserIDKey, sessionKey)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// auth routes
+func AuthRoute(next http.Handler) http.Handler {
+	return JWTAuthRoutes(next, utils.MYSTIC)
 }

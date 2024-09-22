@@ -41,7 +41,7 @@ func CheckPasswordHash(password, hash string) bool {
 }
 
 func validateEmail(email string) (bool, error) {
-	if len(email) > 20 {
+	if len(email) > 50 {
 		return false, fmt.Errorf("email exceeds required length")
 	}
 	parts := strings.Split(strings.ToLower(email), "@")
@@ -68,7 +68,7 @@ func validateEmail(email string) (bool, error) {
 	if len(local) > 64 || len(domain) > 255 {
 		return false, fmt.Errorf("local part or domain part length exceeds the limit in the email")
 	}
-	return false, nil
+	return true, nil
 }
 
 func (handler *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -91,24 +91,24 @@ func (handler *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	if username == "" || password == "" || degree == "" || phone == "" || email == "" {
 		handler.logger.Error("some fields are empty")
 		dataresp["err"] = "some fields are empty"
-		w.Write(GetSuccessResponse(dataresp, registerTTL))
+		apiResponse(w, GetSuccessResponse(dataresp, registerTTL), http.StatusBadRequest)
 		return
 	}
 
 	// ensure the password is greater than 7 values
 	// also ensure that it has special characters
-	specialchars := strings.ContainsAny(password, "$ % @")
+	specialchars := strings.ContainsAny(password, "$ % @ !")
 	passwdcount := len(password)
 	if !specialchars {
 		handler.logger.Error("password must contain special characters")
 		dataresp["err"] = "password must contain special characters"
-		w.Write(GetSuccessResponse(dataresp, registerTTL))
+		apiResponse(w, GetSuccessResponse(dataresp, registerTTL), http.StatusBadRequest)
 		return
 	}
 	if passwdcount <= 7 {
 		handler.logger.Error("password must contain at least 8 characters")
 		dataresp["err"] = "password must contain at least 8 characters"
-		w.Write(GetSuccessResponse(dataresp, registerTTL))
+		apiResponse(w, GetSuccessResponse(dataresp, registerTTL), http.StatusBadRequest)
 		return
 	}
 
@@ -130,7 +130,7 @@ func (handler *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	if err != nil || !createUser {
 		dataresp["err"] = "cannot register user, try again"
 		handler.logger.Error("could not create user", zap.Any("error", err))
-		w.Write(GetSuccessResponse(dataresp, registerTTL))
+		apiResponse(w, GetSuccessResponse(dataresp, registerTTL), http.StatusInternalServerError)
 		return
 	}
 	dataresp["username"] = username
@@ -139,5 +139,5 @@ func (handler *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	dataresp["phone"] = phone
 	dataresp["session_key"] = newsessionkey
 	handler.logger.Error("user successfully created", zap.Bool("registration success", createUser))
-	w.Write(GetSuccessResponse(dataresp, registerTTL))
+	apiResponse(w, GetSuccessResponse(dataresp, registerTTL), http.StatusOK)
 }

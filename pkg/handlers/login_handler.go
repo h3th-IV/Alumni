@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/jim-nnamdi/jinx/pkg/database/mysql"
+	"github.com/jim-nnamdi/jinx/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -29,11 +31,17 @@ func (handler *loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		loginres = map[string]interface{}{}
 	)
 
+	if email == "" || password == "" {
+		loginres["err"] = "email or password not provided"
+		handler.logger.Error("email or password not provided")
+		apiResponse(w, GetErrorResponseBytes(loginres["err"], loginTTL, nil), http.StatusNotFound)
+		return
+	}
 	checkuser, err := handler.mysqlclient.GetUserByEmail(r.Context(), email)
 	if err != nil {
 		loginres["err"] = "user does not exist"
 		handler.logger.Error("user does not exist", zap.Any("checkuser", err))
-		w.Write(GetSuccessResponse(loginres["err"], loginTTL))
+		apiResponse(w, GetErrorResponseBytes(loginres["err"], loginTTL, nil), http.StatusNotFound)
 		return
 	}
 	if checkuser != nil {
@@ -44,10 +52,17 @@ func (handler *loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				loginres["err"] = "email or password incorrect"
 				handler.logger.Error("email or password incorrect", zap.Any("login response", "email or password incorrect"))
-				w.Write(GetSuccessResponse(loginres["err"], loginTTL))
+				apiResponse(w, GetErrorResponseBytes(loginres["err"], loginTTL, nil), http.StatusUnauthorized)
 				return
 			}
 			if loginnow != nil {
+				jwt, err := utils.GenerateToken(loginnow, 2*time.Hour, utils.JWTISSUER, utils.MYSTIC)
+				if err != nil {
+					loginres["err"] = "unable to authenticate user"
+					handler.logger.Error("err generating auth token")
+					apiResponse(w, GetErrorResponseBytes(loginres["err"], loginTTL, nil), http.StatusInternalServerError)
+					return
+				}
 				loginres["username"] = loginnow.Username
 				loginres["email"] = loginnow.Email
 				loginres["phone"] = loginnow.Phone
@@ -57,7 +72,8 @@ func (handler *loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				loginres["profile_picture"] = loginnow.ProfilePicture
 				loginres["linkedin_profile"] = loginnow.LinkedinProfile
 				loginres["twitter_profile"] = loginnow.TwitterProfile
-				w.Write(GetSuccessResponse(loginres, loginTTL))
+				loginres["jwt_token"] = jwt
+				apiResponse(w, GetSuccessResponse(loginres, loginTTL), http.StatusOK)
 			}
 		}
 	}

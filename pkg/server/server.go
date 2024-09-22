@@ -1,10 +1,16 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/jim-nnamdi/jinx/pkg/middleware"
+	"github.com/jim-nnamdi/jinx/pkg/utils"
+	"github.com/justinas/alice"
+	"github.com/rs/cors"
+	"go.uber.org/zap"
 )
 
 type GracefulShutdownServer struct {
@@ -18,6 +24,12 @@ type GracefulShutdownServer struct {
 	AllForumHandler    http.Handler // get all posts
 	SingleForumHandler http.Handler // get one post
 	ChatHandler        http.Handler // chat a user
+	CreateGroup        http.Handler
+	AddUserToGroup     http.Handler
+	SendGroupMessage   http.Handler
+	GetChatHistory     http.Handler
+
+	CommentHandler http.Handler //make comments
 
 	httpServer     *http.Server
 	WriteTimeout   time.Duration
@@ -28,13 +40,34 @@ type GracefulShutdownServer struct {
 
 func (server *GracefulShutdownServer) getRouter() *mux.Router {
 	router := mux.NewRouter()
-	router.Handle("/login", server.LoginHandler)
-	router.Handle("/register", server.RegisterHandler)
-	router.Handle("/profile", server.ProfileHandler)
-	router.Handle("/forum", server.AllForumHandler)
-	router.Handle("/forum-post", server.SingleForumHandler)
-	router.Handle("/add-forum-post", server.AddForumHandler)
-	router.Handle("/chat", server.ChatHandler)
+
+	mux.CORSMethodMiddleware(router)
+	cors := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
+	})
+	middleWareChain := alice.New(utils.RequestLogger, cors.Handler)
+	authRoute := alice.New(middleware.AuthRoute)
+	//authed routes
+	router.Handle("/users/profile", authRoute.ThenFunc(server.ProfileHandler.ServeHTTP)).Methods(http.MethodGet)
+	router.Handle("/users/chat", authRoute.ThenFunc(server.ChatHandler.ServeHTTP)).Methods(http.MethodPost)
+	router.Handle("/users/chat-history", authRoute.ThenFunc(server.GetChatHistory.ServeHTTP)).Methods(http.MethodGet)
+	router.Handle("/forums/create/post", authRoute.ThenFunc(server.AddForumHandler.ServeHTTP)).Methods(http.MethodPost)
+	router.Handle("/forums/comment", authRoute.ThenFunc(server.CommentHandler.ServeHTTP)).Methods(http.MethodPost)
+	router.Handle("/groups/create", authRoute.ThenFunc(server.CreateGroup.ServeHTTP)).Methods(http.MethodPost)
+	router.Handle("/groups/add-member", authRoute.ThenFunc(server.AddUserToGroup.ServeHTTP)).Methods(http.MethodPost)
+	router.Handle("/groups/send-message", authRoute.ThenFunc(server.SendGroupMessage.ServeHTTP)).Methods(http.MethodPost)
+
+	//no auth routes
+	router.Handle("/forums", server.AllForumHandler).Methods(http.MethodGet)
+	router.Handle("/forums/post/{slug}", server.SingleForumHandler).Methods(http.MethodGet)
+	router.Handle("/register", server.RegisterHandler).Methods(http.MethodPost)
+	router.Handle("/login", server.LoginHandler).Methods(http.MethodPost)
+	router.Handle("/", server.HomeHandler)
+	router.Use(middleWareChain.Then) //request logging will be handled here
+	mux.CORSMethodMiddleware(router)
 	router.SkipClean(true)
 	return router
 }
@@ -48,5 +81,8 @@ func (server *GracefulShutdownServer) Start() {
 		IdleTimeout:  server.IdleTimeout,
 		Handler:      router,
 	}
-	server.httpServer.ListenAndServe()
+	utils.Logger.Info(fmt.Sprintf("listening and serving on %s", server.HTTPListenAddr))
+	if err := server.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		utils.Logger.Fatal("server failed to start", zap.Error(err))
+	}
 }
