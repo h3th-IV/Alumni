@@ -29,9 +29,9 @@ func (fs *aforumStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if get_all_posts != nil {
-		w.Write(GetSuccessResponse(get_all_posts, 30))
+		apiResponse(w, GetSuccessResponse(get_all_posts, 30), http.StatusOK)
 	} else {
-		w.Write(GetSuccessResponse([]struct{}{}, 30))
+		apiResponse(w, GetSuccessResponse([]struct{}{}, 30), http.StatusOK)
 	}
 
 }

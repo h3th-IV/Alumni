@@ -36,7 +36,7 @@ func (cs *ichatStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		model_invalid_sess := map[string]string{}
 		model_invalid_sess["error"] = "failed to get user"
 		model_invalid_sess["db_error"] = "authentication failed"
-		w.Write(GetErrorResponseBytes(model_invalid_sess, 30, fmt.Errorf("'%s'", "auth again")))
+		apiResponse(w, GetErrorResponseBytes(model_invalid_sess, 30, fmt.Errorf("'%s'", "auth again")), http.StatusUnauthorized)
 		return
 	}
 	recv_user, err := cs.DB.GetUserByEmail(r.Context(), recipient)
@@ -46,7 +46,7 @@ func (cs *ichatStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		failed_retrieval := map[string]string{}
 		failed_retrieval["error"] = "failed to get user"
 		failed_retrieval["db_error"] = err.Error()
-		w.Write(GetErrorResponseBytes(failed_retrieval, 30, fmt.Errorf("'%s'", err.Error())))
+		apiResponse(w, GetErrorResponseBytes(failed_retrieval, 30, fmt.Errorf("'%s'", err.Error())), http.StatusInternalServerError)
 		return
 	}
 	msg_valid := len(message)
@@ -55,7 +55,7 @@ func (cs *ichatStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		cs.Log.Printf("'%s'\n", message)
 		msg_resp := map[string]string{}
 		msg_resp["error"] = "max message threshold"
-		w.Write(GetErrorResponseBytes(msg_resp, 30, fmt.Errorf("'%s'", "error sending message")))
+		apiResponse(w, GetErrorResponseBytes(msg_resp, 30, fmt.Errorf("'%s'", "error sending message")), http.StatusInternalServerError)
 		return
 	}
 	send_chat, err := cs.DB.SendMessage(r.Context(), current_user.Id, recv_user.Id, message, time.Now(), time.Now())
@@ -64,7 +64,7 @@ func (cs *ichatStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		nilc_resp := map[string]string{}
 		nilc_resp["error"] = "error sending message"
 		nilc_resp["db_error"] = err.Error()
-		w.Write(GetErrorResponseBytes(nilc_resp, 30, err))
+		apiResponse(w, GetErrorResponseBytes(nilc_resp, 30, err), http.StatusInternalServerError)
 		return
 	}
 	if send_chat {
@@ -74,7 +74,7 @@ func (cs *ichatStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		chatresp["message"] = message
 		chatresp["created_at"] = time.Now()
 		chatresp["updated_at"] = time.Now()
-		w.Write(GetSuccessResponse(chatresp, 30))
+		apiResponse(w, GetSuccessResponse(chatresp, 30), http.StatusOK)
 		return
 	}
 }

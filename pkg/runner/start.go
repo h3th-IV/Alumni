@@ -4,11 +4,13 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
 	database "github.com/jim-nnamdi/jinx/pkg/database/mysql"
 	"github.com/jim-nnamdi/jinx/pkg/handlers"
 	"github.com/jim-nnamdi/jinx/pkg/server"
+	"github.com/jim-nnamdi/jinx/pkg/utils"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
@@ -59,22 +61,39 @@ func (runner *StartRunner) Run(c *cli.Context) error {
 		Addr:                 fmt.Sprintf("%s:%s", runner.MySQLDatabaseHost, runner.MySQLDatabasePort),
 		DBName:               runner.MySQLDatabaseName,
 		AllowNativePasswords: true,
+		ParseTime:            true,
 	}
 
-	if mysqlDbInstance, err = sql.Open("mysql", databaseConfig.FormatDSN()); err != nil {
+	const maxRetries = 3
+	const retryDelay = 2 * time.Second
+
+	for i := 0; i < maxRetries; i++ {
+		if mysqlDbInstance, err = sql.Open("mysql", databaseConfig.FormatDSN()); err == nil {
+			if err = mysqlDbInstance.Ping(); err == nil {
+				// Successfully connected
+				break
+			}
+		}
+		log.Printf("Failed to connect to MySQL database, attempt %d: %v", i+1, err)
+		time.Sleep(retryDelay)
+	}
+
+	if err != nil {
+		utils.Logger.Info("err connecting to database after multiple tries")
 		return fmt.Errorf("unable to open connection to MySQL Server: %s", err.Error())
 	}
 
 	if mysqlDatabaseClient, err = database.NewMySQLDatabase(mysqlDbInstance); err != nil {
 		return fmt.Errorf("unable to create MySQL database client: %s", err.Error())
 	}
+	utils.Logger.Info("connected to database successfully")
 	server := &server.GracefulShutdownServer{
 		HTTPListenAddr:     runner.ListenAddr,
 		RegisterHandler:    handlers.NewRegisterHandler(logger, mysqlDatabaseClient),
 		LoginHandler:       handlers.NewLoginHandler(logger, mysqlDatabaseClient),
 		ProfileHandler:     handlers.NewProfileHandler(logger, mysqlDatabaseClient),
 		HomeHandler:        handlers.NewHomeHandler(),
-		AddForumHandler:    handlers.NewForumStruct(alog, mysqlDatabaseClient),
+		AddForumHandler:    handlers.NewForumStruct(logger, mysqlDatabaseClient),
 		AllForumHandler:    handlers.NewAForumStruct(alog, mysqlDatabaseClient),
 		SingleForumHandler: handlers.NewSForumStruct(alog, mysqlDatabaseClient),
 		ChatHandler:        handlers.NewChat(alog, mysqlDatabaseClient),

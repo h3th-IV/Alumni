@@ -2,6 +2,7 @@ package command
 
 import (
 	"github.com/jim-nnamdi/jinx/pkg/runner"
+	"github.com/jim-nnamdi/jinx/pkg/utils"
 	"github.com/urfave/cli/v2"
 )
 
@@ -54,6 +55,20 @@ func StartCommand() *cli.Command {
 				EnvVars:     []string{"AC_PORT"},
 				Usage:       "Sample database port",
 				Destination: &startRunner.MySQLDatabasePort,
+				Value:       "",
+			},
+			&cli.StringFlag{
+				Name:        "jwt_issuer",
+				EnvVars:     []string{"JWTISSUER"},
+				Usage:       "Sample database port",
+				Destination: &utils.JWTISSUER,
+				Value:       "",
+			},
+			&cli.StringFlag{
+				Name:        "secret",
+				EnvVars:     []string{"AC_PORT"},
+				Usage:       "Sample database port",
+				Destination: &utils.MYSTIC,
 				Value:       "",
 			},
 		},

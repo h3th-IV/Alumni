@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/jim-nnamdi/jinx/pkg/database/mysql"
-	"github.com/jim-nnamdi/jinx/pkg/model"
+	"github.com/jim-nnamdi/jinx/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -25,21 +25,20 @@ func NewProfileHandler(logger *zap.Logger, mysqlclient mysql.Database) *profileH
 
 func (handler *profileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	profileres := map[string]interface{}{}
-	userInfo, ok := model.FromContext(r.Context())
-	if !ok {
+	userInfo, err := utils.AuthenticateUser(r.Context(), handler.logger, handler.mysqlclient)
+	if err != nil {
 		profileres["err"] = "please sign in to access this page"
 		handler.logger.Debug("unauthorized user")
-		w.Write(GetSuccessResponse(profileres["err"], profileTTL))
+		apiResponse(w, GetErrorResponseBytes(profileres["err"], profileTTL, nil), http.StatusUnauthorized)
 		return
 	}
 	profileres["id"] = userInfo.Id
 	profileres["username"] = userInfo.Username
 	profileres["email"] = userInfo.Email
 	profileres["phone"] = userInfo.Phone
-	profileres["session_key"] = userInfo.SessionKey
 	profileres["degree"] = userInfo.Degree
 	profileres["current_job"] = userInfo.CurrentJob
 	profileres["linkedin_profile"] = userInfo.LinkedinProfile
 	profileres["twitter_profile"] = userInfo.TwitterProfile
-	w.Write(GetSuccessResponse(profileres, profileTTL))
+	apiResponse(w, GetSuccessResponse(profileres, profileTTL), http.StatusOK)
 }

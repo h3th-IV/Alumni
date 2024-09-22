@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"reflect"
 	"time"
 )
@@ -63,4 +64,10 @@ func createSessionKey(patronID string, t time.Time) string {
 	}
 
 	return fmt.Sprintf("%x", hash.Sum(nil))
+}
+
+func apiResponse(w http.ResponseWriter, responseByte []byte, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	w.Write(responseByte)
 }
