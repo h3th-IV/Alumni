@@ -24,6 +24,12 @@ type GracefulShutdownServer struct {
 	AllForumHandler    http.Handler // get all posts
 	SingleForumHandler http.Handler // get one post
 	ChatHandler        http.Handler // chat a user
+	CreateGroup        http.Handler
+	AddUserToGroup     http.Handler
+	SendGroupMessage   http.Handler
+	GetChatHistory     http.Handler
+
+	CommentHandler http.Handler //make comments
 
 	httpServer     *http.Server
 	WriteTimeout   time.Duration
@@ -42,15 +48,23 @@ func (server *GracefulShutdownServer) getRouter() *mux.Router {
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
 	})
-	middleWareChain := alice.New(utils.RequestLogger, utils.RecoverPanic, cors.Handler)
+	middleWareChain := alice.New(utils.RequestLogger, cors.Handler)
 	authRoute := alice.New(middleware.AuthRoute)
-	router.Handle("/profile", authRoute.ThenFunc(server.ProfileHandler.ServeHTTP)).Methods(http.MethodGet)
-	router.Handle("/chat", authRoute.ThenFunc(server.ChatHandler.ServeHTTP)).Methods(http.MethodPost)
-	router.Handle("/add-forum-post", authRoute.ThenFunc(server.AddForumHandler.ServeHTTP)).Methods(http.MethodGet)
-	router.Handle("/forums", server.AllForumHandler)
-	router.Handle("/forum-post", server.SingleForumHandler)
-	router.Handle("/register", server.RegisterHandler)
-	router.Handle("/login", server.LoginHandler)
+	//authed routes
+	router.Handle("/users/profile", authRoute.ThenFunc(server.ProfileHandler.ServeHTTP)).Methods(http.MethodGet)
+	router.Handle("/users/chat", authRoute.ThenFunc(server.ChatHandler.ServeHTTP)).Methods(http.MethodPost)
+	router.Handle("/users/chat-history", authRoute.ThenFunc(server.GetChatHistory.ServeHTTP)).Methods(http.MethodGet)
+	router.Handle("/forums/create/post", authRoute.ThenFunc(server.AddForumHandler.ServeHTTP)).Methods(http.MethodPost)
+	router.Handle("/forums/comment", authRoute.ThenFunc(server.CommentHandler.ServeHTTP)).Methods(http.MethodPost)
+	router.Handle("/groups/create", authRoute.ThenFunc(server.CreateGroup.ServeHTTP)).Methods(http.MethodPost)
+	router.Handle("/groups/add-member", authRoute.ThenFunc(server.AddUserToGroup.ServeHTTP)).Methods(http.MethodPost)
+	router.Handle("/groups/send-message", authRoute.ThenFunc(server.SendGroupMessage.ServeHTTP)).Methods(http.MethodPost)
+
+	//no auth routes
+	router.Handle("/forums", server.AllForumHandler).Methods(http.MethodGet)
+	router.Handle("/forums/post/{slug}", server.SingleForumHandler).Methods(http.MethodGet)
+	router.Handle("/register", server.RegisterHandler).Methods(http.MethodPost)
+	router.Handle("/login", server.LoginHandler).Methods(http.MethodPost)
 	router.Handle("/", server.HomeHandler)
 	router.Use(middleWareChain.Then) //request logging will be handled here
 	mux.CORSMethodMiddleware(router)

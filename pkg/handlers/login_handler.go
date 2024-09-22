@@ -31,6 +31,12 @@ func (handler *loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		loginres = map[string]interface{}{}
 	)
 
+	if email == "" || password == "" {
+		loginres["err"] = "email or password not provided"
+		handler.logger.Error("email or password not provided")
+		apiResponse(w, GetErrorResponseBytes(loginres["err"], loginTTL, nil), http.StatusNotFound)
+		return
+	}
 	checkuser, err := handler.mysqlclient.GetUserByEmail(r.Context(), email)
 	if err != nil {
 		loginres["err"] = "user does not exist"

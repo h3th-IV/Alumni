@@ -23,8 +23,19 @@ type Database interface {
 	/* transactions */
 	GetUserTransactions(ctx context.Context, user_email string) (*[]model.Transaction, error)
 	CreateNewTransaction(ctx context.Context, from_user int, from_user_email string, to_user int, to_user_email string, transactiontype string, created_at time.Time, updated_at time.Time, amount int, user_email string) (bool, error)
+
+	/*forum and messages*/
 	AddNewForumPost(ctx context.Context, title string, description string, author string, slug string, created_at time.Time, updated_at time.Time) (bool, error)
 	GetSingleForumPost(ctx context.Context, slug string) (*model.Forum, error)
 	GetAllForums(ctx context.Context) (*[]model.Forum, error)
+	GetCommentsByForumID(ctx context.Context, forumID int) ([]model.Comment, error)
 	SendMessage(ctx context.Context, senderId int, receiverId int, message string, createdAt time.Time, updatedAt time.Time) (bool, error)
+	AddComment(ctx context.Context, userID int, forumID int, comment string) (bool, error)
+	CreateGroup(ctx context.Context, name string, userID int) (int, error)
+	AddGroupMember(ctx context.Context, groupID int, userID int) (bool, error)
+	SendGroupMessage(ctx context.Context, groupID int, userID int, message string) (bool, error)
+	GetGroupMessages(ctx context.Context, groupID int) ([]model.GroupMessage, error)
+	GetGroupCreator(ctx context.Context, groupID int) (*model.User, error)
+	CheckGroupMembership(ctx context.Context, groupID int, userID int) (bool, error)
+	FetchUserChats(ctx context.Context, userID1, userID2 int) ([]*model.Chat, error)
 }

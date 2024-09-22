@@ -63,6 +63,19 @@ CREATE TABLE forums (
     FOREIGN KEY (author) REFERENCES users(email) ON DELETE SET NULL
 );
 
+--table: comments
+CREATE TABLE comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    forum_id INT,
+    comment TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (forum_id) REFERENCES forums(id) ON DELETE CASCADE
+);
+
+
 --table: chat_messages
 CREATE TABLE chat_messages (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -74,3 +87,37 @@ CREATE TABLE chat_messages (
     FOREIGN KEY (sender) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (recipient) REFERENCES users(id) ON DELETE SET NULL
 );
+
+
+--table for storing group information
+CREATE TABLE groups (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    created_by INT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+);
+
+--table for storing group members
+CREATE TABLE group_members (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    group_id INT,
+    user_id INT,
+    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+--table for storing group messages
+CREATE TABLE group_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    group_id INT,
+    user_id INT,
+    message TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+

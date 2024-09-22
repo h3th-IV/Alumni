@@ -11,3 +11,10 @@ type Forum struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
+
+type Comment struct {
+	ID        int       `json:"id"`
+	Username  string    `json:"username"`
+	Comment   string    `json:"comment"`
+	CreatedAt time.Time `json:"created_at"`
+}

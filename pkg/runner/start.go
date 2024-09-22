@@ -53,7 +53,6 @@ func (runner *StartRunner) Run(c *cli.Context) error {
 	}
 
 	logger.Sync()
-	alog := log.Default()
 	databaseConfig := &mysql.Config{
 		User:                 runner.MySQLDatabaseUser,
 		Passwd:               runner.MySQLDatabasePassword,
@@ -94,9 +93,14 @@ func (runner *StartRunner) Run(c *cli.Context) error {
 		ProfileHandler:     handlers.NewProfileHandler(logger, mysqlDatabaseClient),
 		HomeHandler:        handlers.NewHomeHandler(),
 		AddForumHandler:    handlers.NewForumStruct(logger, mysqlDatabaseClient),
-		AllForumHandler:    handlers.NewAForumStruct(alog, mysqlDatabaseClient),
-		SingleForumHandler: handlers.NewSForumStruct(alog, mysqlDatabaseClient),
-		ChatHandler:        handlers.NewChat(alog, mysqlDatabaseClient),
+		AllForumHandler:    handlers.NewAForumStruct(logger, mysqlDatabaseClient),
+		SingleForumHandler: handlers.NewSForumStruct(logger, mysqlDatabaseClient),
+		ChatHandler:        handlers.NewChat(logger, mysqlDatabaseClient),
+		CommentHandler:     handlers.NewCommentHandler(logger, mysqlDatabaseClient),
+		CreateGroup:        handlers.NewCreateGroupHandler(logger, mysqlDatabaseClient),
+		AddUserToGroup:     handlers.NewAddGroupMemberHandler(logger, mysqlDatabaseClient),
+		SendGroupMessage:   handlers.NewSendGroupMessageHandler(logger, mysqlDatabaseClient),
+		GetChatHistory:     handlers.NewGetUserChatsHistoryHandler(logger, mysqlDatabaseClient),
 	}
 	server.Start()
 	return nil
