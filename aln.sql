@@ -74,3 +74,15 @@ CREATE TABLE chat_messages (
     FOREIGN KEY (sender) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (recipient) REFERENCES users(id) ON DELETE SET NULL
 );
+
+-- table connections
+CREATE TABLE connections (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    from int NOT NULL,
+    to int NOT NULL,
+    from_connections SET('') NOT NULL,
+    to_connections SET('') NOT NULL,
+    FOREIGN KEY(from) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY(to) REFERENCES users(id) ON DELETE CASCADE,
+    created_at timestamp DEFAULT CURRENT_TIMESTAMP
+);
