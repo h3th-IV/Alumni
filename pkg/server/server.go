@@ -70,6 +70,7 @@ func (server *GracefulShutdownServer) getRouter() *mux.Router {
 	router.Handle("/register", server.RegisterHandler).Methods(http.MethodPost)
 	router.Handle("/login", server.LoginHandler).Methods(http.MethodPost)
 	router.Handle("/", server.HomeHandler)
+	cors.Handler(router)
 	router.Use(middleWareChain.Then) //request logging will be handled here
 	mux.CORSMethodMiddleware(router)
 	router.SkipClean(true)
