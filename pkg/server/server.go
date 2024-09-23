@@ -43,16 +43,20 @@ type GracefulShutdownServer struct {
 func (server *GracefulShutdownServer) getRouter() *mux.Router {
 	router := mux.NewRouter()
 
-	mux.CORSMethodMiddleware(router)
-	cors := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},
+	// CORS configuration
+	corsHandler := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"}, // Allow all origins for testing, adjust as needed
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
-	})
-	middleWareChain := alice.New(utils.RequestLogger, cors.Handler)
+		Debug:            true, // Enable CORS debugging for easier diagnosis in development
+	}).Handler
+
+	// Middleware chain with CORS and other middleware
+	middleWareChain := alice.New(utils.RequestLogger, corsHandler)
 	authRoute := alice.New(middleware.AuthRoute)
-	//authed routes
+
+	// Authenticated routes
 	router.Handle("/users/profile", authRoute.ThenFunc(server.ProfileHandler.ServeHTTP)).Methods(http.MethodGet)
 	router.Handle("/users/chat", authRoute.ThenFunc(server.ChatHandler.ServeHTTP)).Methods(http.MethodPost)
 	router.Handle("/users/chat-history", authRoute.ThenFunc(server.GetChatHistory.ServeHTTP)).Methods(http.MethodGet)
@@ -64,15 +68,16 @@ func (server *GracefulShutdownServer) getRouter() *mux.Router {
 	router.Handle("/connections/send-new", authRoute.ThenFunc(server.SendConnectionRequest.ServeHTTP)).Methods(http.MethodPost)
 	router.Handle("/connections/accept", authRoute.ThenFunc(server.AcceptHandler.ServeHTTP)).Methods(http.MethodPost)
 
-	//no auth routes
+	// Public routes (no auth)
 	router.Handle("/forums", server.AllForumHandler).Methods(http.MethodGet)
 	router.Handle("/forums/post/{slug}", server.SingleForumHandler).Methods(http.MethodGet)
 	router.Handle("/register", server.RegisterHandler).Methods(http.MethodPost)
 	router.Handle("/login", server.LoginHandler).Methods(http.MethodPost)
 	router.Handle("/", server.HomeHandler)
-	cors.Handler(router)
-	router.Use(middleWareChain.Then) //request logging will be handled here
-	mux.CORSMethodMiddleware(router)
+
+	// Apply middleware (including CORS) to all routes
+	router.Use(middleWareChain.Then)
+
 	router.SkipClean(true)
 	return router
 }
