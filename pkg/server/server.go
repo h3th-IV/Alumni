@@ -45,7 +45,7 @@ func (server *GracefulShutdownServer) getRouter() *mux.Router {
 
 	mux.CORSMethodMiddleware(router)
 	cors := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*", "http://127.0.0.1:5501"},
+		AllowedOrigins:   []string{"*", "http://127.0.0.1:5501", "alumniapp.vercel.app/"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,

@@ -45,6 +45,17 @@ func (handler *SendConnectionRequestHandler) ServeHTTP(w http.ResponseWriter, r 
 		return
 	}
 
+	connected, err := handler.db.CheckIfConnected(r.Context(), userInfo.Id, recv.Id)
+	if err != nil{
+		resp["err"] = "unable to check for previous connection"
+		handler.logger.Error("err checking if users are connected", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusInternalServerError)
+		return
+	}
+	if !connected {
+		resp["warning"] = "you are already connected to this user"
+		handler.logger.Error("")
+	}
 	suc, err := handler.db.CreateConnectionRequest(r.Context(), userInfo.Id, recv.Id)
 	if err != nil {
 		resp["err"] = "unable to send connection request"

@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/jim-nnamdi/jinx/pkg/database/mysql"
+	"github.com/jim-nnamdi/jinx/pkg/model"
 	"github.com/jim-nnamdi/jinx/pkg/utils"
 	"go.uber.org/zap"
 )
@@ -26,10 +28,17 @@ func NewLoginHandler(logger *zap.Logger, mysqlclient mysql.Database) *loginHandl
 
 func (handler *loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var (
-		email    = r.FormValue("email")
-		password = r.FormValue("password")
 		loginres = map[string]interface{}{}
+		Login    *model.Login
 	)
+	if err := json.NewDecoder(r.Body).Decode(&Login); err != nil {
+		loginres["err"] = "unable to process request"
+		handler.logger.Error("err decoding JSON object", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(loginres, loginTTL, nil), http.StatusNotFound)
+		return
+	}
+	email := Login.Email
+	password := Login.Password
 
 	if email == "" || password == "" {
 		loginres["err"] = "email or password not provided"

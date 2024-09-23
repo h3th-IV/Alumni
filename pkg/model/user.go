@@ -22,6 +22,11 @@ type User struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 }
 
+type Login struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 // key is an unexported type for keys defined in this package.
 // This prevents collisions with keys defined in other packages.
 type key struct{}

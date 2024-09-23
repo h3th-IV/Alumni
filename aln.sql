@@ -90,7 +90,7 @@ CREATE TABLE chat_messages (
 
 
 --table for storing group information
-CREATE TABLE groups (
+CREATE TABLE groupie (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     created_by INT,
@@ -105,7 +105,7 @@ CREATE TABLE group_members (
     group_id INT,
     user_id INT,
     joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+    FOREIGN KEY (group_id) REFERENCES groupie(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -116,7 +116,7 @@ CREATE TABLE group_messages (
     user_id INT,
     message TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+    FOREIGN KEY (group_id) REFERENCES groupie(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
