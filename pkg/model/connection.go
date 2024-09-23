@@ -3,12 +3,13 @@ package model
 import "time"
 
 type ConnectionRequest struct {
-	Id         int       `json:"id"`
-	FromUserId int       `json:"from_user_id"`
-	ToUserId   int       `json:"to_user_id"`
-	Status     string    `json:"status"` //enum kinda-- pending, accepted, rejected
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	Id             int       `json:"id"`
+	RecipientEmail string    `json"email"`
+	FromUserId     int       `json:"from_user_id"`
+	ToUserId       int       `json:"to_user_id"`
+	Status         string    `json:"status"` //enum kinda-- pending, accepted, rejected
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // connection already accaepted --like linkedIn networks

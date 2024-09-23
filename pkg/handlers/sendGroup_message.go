@@ -1,10 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/jim-nnamdi/jinx/pkg/database/mysql"
+	"github.com/jim-nnamdi/jinx/pkg/model"
 	"github.com/jim-nnamdi/jinx/pkg/utils"
 	"go.uber.org/zap"
 )
@@ -22,6 +23,10 @@ func NewSendGroupMessageHandler(logger *zap.Logger, db mysql.Database) *sendGrou
 }
 
 func (sgm *sendGroupMessageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var (
+		groupChat *model.GroupChat
+	)
+
 	sgm_resp := map[string]interface{}{}
 	userInfo, err := utils.AuthenticateUser(r.Context(), sgm.logger, sgm.db)
 	if err != nil {
@@ -30,15 +35,14 @@ func (sgm *sendGroupMessageHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 		apiResponse(w, GetErrorResponseBytes(sgm_resp["err"], 30, nil), http.StatusUnauthorized)
 		return
 	}
-	groupID, err := strconv.Atoi(r.FormValue("group_id"))
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&groupChat); err != nil {
 		sgm_resp["err"] = "unable to process request"
-		sgm.logger.Error("err, invalid group ID")
-		apiResponse(w, GetErrorResponseBytes(sgm_resp["err"], 30, nil), http.StatusBadRequest)
+		sgm.logger.Error("err decoding JSON object", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(sgm_resp, loginTTL, nil), http.StatusNotFound)
 		return
 	}
 
-	exist, err := sgm.db.CheckGroupMembership(r.Context(), groupID, userInfo.Id)
+	exist, err := sgm.db.CheckGroupMembership(r.Context(), groupChat.GroupID, userInfo.Id)
 	if err != nil {
 		sgm_resp["err"] = "unable to confirm membership"
 		sgm.logger.Error("err checking membership", zap.Error(err))
@@ -53,7 +57,7 @@ func (sgm *sendGroupMessageHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	message := r.FormValue("message")
+	message := groupChat.Message
 	if message == "" {
 		sgm_resp["err"] = "message body cannot be empty"
 		sgm.logger.Warn("empty message body")
@@ -68,7 +72,7 @@ func (sgm *sendGroupMessageHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	success, err := sgm.db.SendGroupMessage(r.Context(), groupID, userInfo.Id, message)
+	success, err := sgm.db.SendGroupMessage(r.Context(), groupChat.GroupID, userInfo.Id, message)
 	if err != nil || !success {
 		sgm_resp["err"] = "unable to send message"
 		sgm.logger.Error("err sending message to group")

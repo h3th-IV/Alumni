@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/jim-nnamdi/jinx/pkg/database/mysql"
+	"github.com/jim-nnamdi/jinx/pkg/model"
 	"github.com/jim-nnamdi/jinx/pkg/utils"
 	"go.uber.org/zap"
 )
@@ -22,6 +24,7 @@ func NewCreateGroupHandler(logger *zap.Logger, db mysql.Database) *createGroupHa
 
 func (cgh *createGroupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cg_resp := map[string]interface{}{}
+	var group *model.Group
 	userInfo, err := utils.AuthenticateUser(r.Context(), cgh.logger, cgh.db)
 	if err != nil {
 		cg_resp["err"] = "please sign in to access this page"
@@ -30,7 +33,14 @@ func (cgh *createGroupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	groupName := r.FormValue("name")
+	if err := json.NewDecoder(r.Body).Decode(&group); err != nil {
+		cg_resp["err"] = "unable to process request"
+		cgh.logger.Error("err decoding JSON object", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(cg_resp, loginTTL, nil), http.StatusNotFound)
+		return
+	}
+
+	groupName := group.Name
 	if groupName == "" {
 		cg_resp["err"] = "group name cannot be empty"
 		cgh.logger.Error("group name is empty")

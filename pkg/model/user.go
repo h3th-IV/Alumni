@@ -12,12 +12,12 @@ type User struct {
 	Email           string    `json:"email"`
 	Degree          string    `json:"degree"`
 	GradYear        string    `json:"grad_year"`
-	CurrentJob      string    `json:"currentjob"`
+	CurrentJob      string    `json:"current_job"`
 	Phone           string    `json:"phone"`
 	SessionKey      string    `json:"session_key"`
 	ProfilePicture  string    `json:"profilepicture,omitempty"`
-	LinkedinProfile string    `json:"linkedinprofile"`
-	TwitterProfile  string    `json:"twitterprofile"`
+	LinkedinProfile string    `json:"linkedin_profile"`
+	TwitterProfile  string    `json:"twitter_profile"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }

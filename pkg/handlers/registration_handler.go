@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/jim-nnamdi/jinx/pkg/database/mysql"
+	"github.com/jim-nnamdi/jinx/pkg/model"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -73,22 +75,20 @@ func validateEmail(email string) (bool, error) {
 
 func (handler *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var (
-		username        = r.FormValue("username")
-		password        = r.FormValue("password")
-		email           = r.FormValue("email")
-		gradyear        = r.FormValue("grad_year")
-		phone           = r.FormValue("phone")
-		degree          = r.FormValue("degree")
-		currentjob      = r.FormValue("current_job")
-		linkedinprofile = r.FormValue("linkedin_profile")
-		twitterprofile  = r.FormValue("twitter_profile")
-		dataresp        = map[string]interface{}{}
+		RegisterUser *model.User
+		dataresp     = map[string]interface{}{}
 	)
 
+	if err := json.NewDecoder(r.Body).Decode(&RegisterUser); err != nil {
+		dataresp["err"] = "unable to process request"
+		handler.logger.Error("err decoding JSON object", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(dataresp, loginTTL, nil), http.StatusNotFound)
+		return
+	}
 	// there should be a frontend validation for all fields
 	// the backend would assist to catch empty fields if the
 	// frontend validation is compromised.
-	if username == "" || password == "" || degree == "" || phone == "" || email == "" {
+	if RegisterUser.Username == "" || RegisterUser.Password == "" || RegisterUser.Degree == "" || RegisterUser.Phone == "" || RegisterUser.Email == "" {
 		handler.logger.Error("some fields are empty")
 		dataresp["err"] = "some fields are empty"
 		apiResponse(w, GetSuccessResponse(dataresp, registerTTL), http.StatusBadRequest)
@@ -97,8 +97,8 @@ func (handler *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	// ensure the password is greater than 7 values
 	// also ensure that it has special characters
-	specialchars := strings.ContainsAny(password, "$ % @ !")
-	passwdcount := len(password)
+	specialchars := strings.ContainsAny(RegisterUser.Password, "$ % @ !")
+	passwdcount := len(RegisterUser.Password)
 	if !specialchars {
 		handler.logger.Error("password must contain special characters")
 		dataresp["err"] = "password must contain special characters"
@@ -114,29 +114,29 @@ func (handler *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	// we need to hash the password to avoid security issues
 	// and then re-hash it when the user wants to login
-	hashed_password, err := hashPassword(password)
+	hashed_password, err := hashPassword(RegisterUser.Password)
 	if err != nil {
 		handler.logger.Error("cannot hash password", zap.String("hashed password error", err.Error()))
-		fmt.Printf("cannot hash password(%s)", password)
+		fmt.Printf("cannot hash password(%s)", RegisterUser.Password)
 		return
 	}
-	newsessionkey := createSessionKey(email, time.Now())
-	sanitize_email, err := validateEmail(email)
+	newsessionkey := createSessionKey(RegisterUser.Email, time.Now())
+	sanitize_email, err := validateEmail(RegisterUser.Email)
 	if err != nil || !sanitize_email {
 		handler.logger.Error("email was malformed!", zap.Error(err))
 		return
 	}
-	createUser, err := handler.mysqlclient.CreateUser(r.Context(), username, hashed_password, email, degree, gradyear, currentjob, phone, newsessionkey, "", linkedinprofile, twitterprofile)
+	createUser, err := handler.mysqlclient.CreateUser(r.Context(), RegisterUser.Username, hashed_password, RegisterUser.Email, RegisterUser.Degree, RegisterUser.GradYear, RegisterUser.CurrentJob, RegisterUser.Phone, newsessionkey, "", RegisterUser.LinkedinProfile, RegisterUser.TwitterProfile)
 	if err != nil || !createUser {
 		dataresp["err"] = "cannot register user, try again"
 		handler.logger.Error("could not create user", zap.Any("error", err))
 		apiResponse(w, GetSuccessResponse(dataresp, registerTTL), http.StatusInternalServerError)
 		return
 	}
-	dataresp["username"] = username
-	dataresp["email"] = email
-	dataresp["degree"] = degree
-	dataresp["phone"] = phone
+	dataresp["username"] = RegisterUser.Username
+	dataresp["email"] = RegisterUser.Email
+	dataresp["degree"] = RegisterUser.Degree
+	dataresp["phone"] = RegisterUser.Phone
 	dataresp["session_key"] = newsessionkey
 	apiResponse(w, GetSuccessResponse(dataresp, registerTTL), http.StatusOK)
 }

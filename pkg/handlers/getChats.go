@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/jim-nnamdi/jinx/pkg/database/mysql"
+	"github.com/jim-nnamdi/jinx/pkg/model"
 	"github.com/jim-nnamdi/jinx/pkg/utils"
 	"go.uber.org/zap"
 )
@@ -22,6 +24,7 @@ func NewGetUserChatsHistoryHandler(logger *zap.Logger, db mysql.Database) *getUs
 
 func (guc *getUserChatsHistoryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	chat_resp := map[string]interface{}{}
+	var chat *model.Chat
 
 	userInfo, err := utils.AuthenticateUser(r.Context(), guc.logger, guc.db)
 	if err != nil {
@@ -31,7 +34,14 @@ func (guc *getUserChatsHistoryHandler) ServeHTTP(w http.ResponseWriter, r *http.
 		return
 	}
 
-	recipientEmail := r.FormValue("recv_email")
+	if err := json.NewDecoder(r.Body).Decode(&chat); err != nil {
+		chat_resp["err"] = "unable to process request"
+		guc.logger.Error("err decoding JSON object", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(chat_resp, loginTTL, nil), http.StatusNotFound)
+		return
+	}
+
+	recipientEmail := chat.Email
 	if recipientEmail == "" {
 		chat_resp["err"] = "recipient email is required"
 		guc.logger.Error("recipient email is missing")

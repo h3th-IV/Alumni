@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/jim-nnamdi/jinx/pkg/database/mysql"
+	"github.com/jim-nnamdi/jinx/pkg/model"
 	"github.com/jim-nnamdi/jinx/pkg/utils"
 	"go.uber.org/zap"
 )
@@ -34,11 +36,20 @@ func (fs *forumStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var (
-		title       = r.FormValue("title")
-		description = r.FormValue("description")
-		author      = userInfo.Email
-		afp         = map[string]string{}
+		author = userInfo.Email
+		afp    = map[string]string{}
+		forum  *model.Forum
 	)
+
+	if err := json.NewDecoder(r.Body).Decode(&forum); err != nil {
+		new_forum_response["err"] = "unable to process request"
+		fs.logger.Error("err decoding JSON object", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(new_forum_response, loginTTL, nil), http.StatusNotFound)
+		return
+	}
+
+	title := forum.Title
+	description := forum.Description
 	if title == "" || description == "" {
 		fs.logger.Error("title | description ")
 		afp["error"] = "empty title or description"

@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/jim-nnamdi/jinx/pkg/database/mysql"
+	"github.com/jim-nnamdi/jinx/pkg/model"
 	"github.com/jim-nnamdi/jinx/pkg/utils"
 	"go.uber.org/zap"
 )
@@ -27,10 +29,9 @@ func NewChat(logger *zap.Logger, Db mysql.Database) *ichatStruct {
 
 func (cs *ichatStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var (
-		recipient = r.FormValue("recv_email")
-		message   = r.FormValue("message")
-		msg_resp  = map[string]interface{}{}
-		log       log.Logger
+		msg_resp = map[string]interface{}{}
+		log      log.Logger
+		chat     *model.Chat
 	)
 	current_user, err := utils.AuthenticateUser(r.Context(), cs.logger, cs.DB)
 	if err != nil {
@@ -41,6 +42,16 @@ func (cs *ichatStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		apiResponse(w, GetErrorResponseBytes(msg_resp, 30, fmt.Errorf("'%s'", "please try authenticating again")), http.StatusUnauthorized)
 		return
 	}
+
+	if err := json.NewDecoder(r.Body).Decode(&chat); err != nil {
+		msg_resp["err"] = "unable to process request"
+		cs.logger.Error("err decoding JSON object", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(msg_resp, loginTTL, nil), http.StatusNotFound)
+		return
+	}
+
+	recipient := chat.Email
+	message := chat.Message
 	if recipient == "" || message == "" {
 		msg_resp["error"] = "some fields are empty"
 		cs.logger.Error("receiver and message are empty")

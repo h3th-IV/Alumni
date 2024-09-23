@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/jim-nnamdi/jinx/pkg/database/mysql"
+	"github.com/jim-nnamdi/jinx/pkg/model"
 	"github.com/jim-nnamdi/jinx/pkg/utils"
 	"go.uber.org/zap"
 )
@@ -21,6 +23,9 @@ func NewSendConnectionRequestHandler(logger *zap.Logger, db mysql.Database) *Sen
 }
 
 func (handler *SendConnectionRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var (
+		connectionRequest *model.ConnectionRequest
+	)
 	resp := map[string]interface{}{}
 	userInfo, err := utils.AuthenticateUser(r.Context(), handler.logger, handler.db)
 	if err != nil {
@@ -30,7 +35,13 @@ func (handler *SendConnectionRequestHandler) ServeHTTP(w http.ResponseWriter, r 
 		return
 	}
 
-	email := r.FormValue("email")
+	if err := json.NewDecoder(r.Body).Decode(&connectionRequest); err != nil {
+		resp["err"] = "unable to process request"
+		handler.logger.Error("err decoding JSON object", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(resp, loginTTL, nil), http.StatusNotFound)
+		return
+	}
+	email := connectionRequest.RecipientEmail
 	if email == "" {
 		resp["err"] = "recipint email is required"
 		handler.logger.Error("email is missing")
@@ -46,7 +57,7 @@ func (handler *SendConnectionRequestHandler) ServeHTTP(w http.ResponseWriter, r 
 	}
 
 	connected, err := handler.db.CheckIfConnected(r.Context(), userInfo.Id, recv.Id)
-	if err != nil{
+	if err != nil {
 		resp["err"] = "unable to check for previous connection"
 		handler.logger.Error("err checking if users are connected", zap.Error(err))
 		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusInternalServerError)

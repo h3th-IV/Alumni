@@ -8,3 +8,7 @@ type GroupMessage struct {
 	Message   string    `json:"message"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type Group struct {
+	Name string `json:"name"`
+}
