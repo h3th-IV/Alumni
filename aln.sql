@@ -120,6 +120,15 @@ CREATE TABLE group_messages (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+--table to store actual connections between users
+CREATE TABLE connections (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    connection_user_id INT NOT NULL,
+    connected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (connection_user_id) REFERENCES users(id)
+);
 
 --able to store connection requests
 CREATE TABLE connection_requests (
@@ -132,15 +141,3 @@ CREATE TABLE connection_requests (
     FOREIGN KEY (from_id) REFERENCES users(id),
     FOREIGN KEY (to_id) REFERENCES users(id)
 );
-
---table to store actual connections between users
-CREATE TABLE connections (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    connection_user_id INT NOT NULL,
-    connected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (connection_user_id) REFERENCES users(id)
-);
-
-

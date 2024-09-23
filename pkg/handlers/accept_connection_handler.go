@@ -46,6 +46,33 @@ func (handler *AcceptConnectionRequestHandler) ServeHTTP(w http.ResponseWriter, 
 		return
 	}
 
+	existingConnection, err := handler.db.CheckIfConnected(r.Context(), userInfo.Id, recv.Id)
+	if err != nil {
+		resp["err"] = "failed to check existing connection"
+		handler.logger.Error("failed to check connection", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusInternalServerError)
+		return
+	}
+	if existingConnection {
+		resp["err"] = "you are already connected with this user"
+		handler.logger.Info("connection already exists between users")
+		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusConflict)
+		return
+	}
+
+	existingRequest, err := handler.db.CheckPendingConnection(r.Context(), userInfo.Id, recv.Id)
+	if err != nil {
+		resp["err"] = "failed to check pending request"
+		handler.logger.Error("failed to check pending request", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusInternalServerError)
+		return
+	}
+	if existingRequest {
+		resp["err"] = "a connection request is already pending with this user"
+		handler.logger.Info("pending connection request exists between users")
+		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusConflict)
+		return
+	}
 	connectionRequest, err := handler.db.GetConnectionRequest(r.Context(), recv.Id, userInfo.Id)
 	if err != nil || connectionRequest.Status != "pending" {
 		resp["err"] = "connection request not found or already processed"

@@ -42,6 +42,8 @@ type mysqlDatabase struct {
 	updateConnectionRequest *sql.Stmt
 	createConnection        *sql.Stmt
 	getUserConnections      *sql.Stmt
+	checkIfConnected        *sql.Stmt
+	checkPendingConnection  *sql.Stmt
 }
 
 func NewMySQLDatabase(db *sql.DB) (*mysqlDatabase, error) {
@@ -71,6 +73,8 @@ func NewMySQLDatabase(db *sql.DB) (*mysqlDatabase, error) {
 		updateConnectionRequest = "UPDATE connection_requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;"
 		createConnection        = "INSERT INTO connections (user_id, connection_user_id) VALUES (?, ?);"
 		getUserConnections      = "SELECT id, user_id, connection_user_id, connected_at FROM connections WHERE user_id = ?;"
+		checkIfConnected        = "SELECT COUNT(*) FROM connections WHERE (user_id = ? AND connection_user_id = ?) OR (user_id = ? AND connection_user_id = ?);"
+		checkPendingConnection  = "SELECT COUNT(*) FROM connection_requests WHERE from_id = ? AND to_id = ? AND status = 'pending';"
 		database                = &mysqlDatabase{}
 		err                     error
 	)
@@ -147,6 +151,12 @@ func NewMySQLDatabase(db *sql.DB) (*mysqlDatabase, error) {
 		return nil, err
 	}
 	if database.getUserConnections, err = db.Prepare(getUserConnections); err != nil {
+		return nil, err
+	}
+	if database.checkIfConnected, err = db.Prepare(checkIfConnected); err != nil {
+		return nil, err
+	}
+	if database.checkPendingConnection, err = db.Prepare(checkPendingConnection); err != nil {
 		return nil, err
 	}
 	return database, nil
@@ -500,7 +510,7 @@ func (db *mysqlDatabase) UpdateConnectionRequest(ctx context.Context, reqId int,
 }
 
 func (db *mysqlDatabase) CreateConnection(ctx context.Context, userId, connectionUserId int) (bool, error) {
-	con_req, err := db.createConnection.ExecContext(ctx, userId, connectionUserId, time.Now())
+	con_req, err := db.createConnection.ExecContext(ctx, userId, connectionUserId)
 	if err != nil {
 		log.Println("Error creating connection:", err)
 		return false, err
@@ -535,6 +545,26 @@ func (db *mysqlDatabase) GetUserConnections(ctx context.Context, userId int) ([]
 	return connections, nil
 }
 
+func (db *mysqlDatabase) CheckIfConnected(ctx context.Context, userID1, userID2 int) (bool, error) {
+	var count int
+	err := db.checkIfConnected.QueryRowContext(ctx, userID1, userID2, userID2, userID1).Scan(&count)
+	if err != nil {
+		log.Println("error checking existing connection:", err)
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (db *mysqlDatabase) CheckPendingConnection(ctx context.Context, fromUserID, toUserID int) (bool, error) {
+	var count int
+	err := db.checkPendingConnection.QueryRowContext(ctx, fromUserID, toUserID).Scan(&count)
+	if err != nil {
+		log.Println("Error checking pending request:", err)
+		return false, err
+	}
+	return count > 0, nil
+}
+
 func (db *mysqlDatabase) Close() error {
 	db.createUser.Close()
 	db.checkUser.Close()
@@ -559,5 +589,7 @@ func (db *mysqlDatabase) Close() error {
 	db.getConnectionRequest.Close()
 	db.getUserConnections.Close()
 	db.updateConnectionRequest.Close()
+	db.checkIfConnected.Close()
+	db.checkPendingConnection.Close()
 	return nil
 }
