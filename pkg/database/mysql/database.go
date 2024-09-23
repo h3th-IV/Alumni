@@ -42,7 +42,7 @@ type Database interface {
 	GetConnectionRequest(ctx context.Context, fromUserId, toUserId int) (*model.ConnectionRequest, error)
 	UpdateConnectionRequest(ctx context.Context, reqId int, status string) (bool, error)
 	CreateConnection(ctx context.Context, userId, connectionUserId int) (bool, error)
-	GetUserConnections(ctx context.Context, userId int) ([]*model.Connection, error)
+	GetUserConnections(ctx context.Context, userId int) ([]*model.User, error)
 	CheckIfConnected(ctx context.Context, userID1, userID2 int) (bool, error)
 	CheckPendingConnection(ctx context.Context, fromUserID, toUserID int) (bool, error)
 }

@@ -47,6 +47,6 @@ func (handler *profileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	profileres["current_job"] = userInfo.CurrentJob
 	profileres["linkedin_profile"] = userInfo.LinkedinProfile
 	profileres["twitter_profile"] = userInfo.TwitterProfile
-	profileres["connection"] = connections
+	profileres["network"] = connections
 	apiResponse(w, GetSuccessResponse(profileres, profileTTL), http.StatusOK)
 }

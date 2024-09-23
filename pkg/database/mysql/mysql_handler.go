@@ -72,7 +72,7 @@ func NewMySQLDatabase(db *sql.DB) (*mysqlDatabase, error) {
 		getConnectionRequest    = "SELECT id, from_id, to_id, status, created_at, updated_at FROM connection_requests WHERE from_id = ? AND to_id = ?;"
 		updateConnectionRequest = "UPDATE connection_requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;"
 		createConnection        = "INSERT INTO connections (user_id, connection_user_id) VALUES (?, ?);"
-		getUserConnections      = "SELECT id, user_id, connection_user_id, connected_at FROM connections WHERE user_id = ?;"
+		getUserConnections      = "SELECT u.id, u.username, u.email, u.grad_year, u.degree, u.current_job, u.phone, u.linkedin_profile, u.twitter_profile FROM connections c JOIN users u ON u.id = c.connection_user_id WHERE c.user_id = ?;"
 		checkIfConnected        = "SELECT COUNT(*) FROM connections WHERE (user_id = ? AND connection_user_id = ?) OR (user_id = ? AND connection_user_id = ?);"
 		checkPendingConnection  = "SELECT COUNT(*) FROM connection_requests WHERE from_id = ? AND to_id = ? AND status = 'pending';"
 		database                = &mysqlDatabase{}
@@ -526,7 +526,7 @@ func (db *mysqlDatabase) CreateConnection(ctx context.Context, userId, connectio
 	return true, nil
 }
 
-func (db *mysqlDatabase) GetUserConnections(ctx context.Context, userId int) ([]*model.Connection, error) {
+func (db *mysqlDatabase) GetUserConnections(ctx context.Context, userId int) ([]*model.User, error) {
 	rows, err := db.getUserConnections.QueryContext(ctx, userId)
 	if err != nil {
 		log.Println("Error fetching user connections:", err)
@@ -534,15 +534,15 @@ func (db *mysqlDatabase) GetUserConnections(ctx context.Context, userId int) ([]
 	}
 	defer rows.Close()
 
-	var connections []*model.Connection
+	var users []*model.User
 	for rows.Next() {
-		var conn model.Connection
-		if err := rows.Scan(&conn.Id, &conn.UserId, &conn.ConnectionUserId, &conn.ConnectedAt); err != nil {
+		var user model.User
+		if err := rows.Scan(&user.Id, &user.Username, &user.Email, &user.GradYear, &user.Degree, &user.CurrentJob, &user.Phone, &user.LinkedinProfile, &user.TwitterProfile); err != nil {
 			return nil, err
 		}
-		connections = append(connections, &conn)
+		users = append(users, &user)
 	}
-	return connections, nil
+	return users, nil
 }
 
 func (db *mysqlDatabase) CheckIfConnected(ctx context.Context, userID1, userID2 int) (bool, error) {
