@@ -22,6 +22,18 @@ type User struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 }
 
+type Register struct {
+	Username        string `json:"username"`
+	Password        string `json:"password"`
+	Email           string `json:"email"`
+	Degree          string `json:"degree"`
+	GradYear        string `json:"grad_year"`
+	CurrentJob      string `json:"current_job"`
+	Phone           string `json:"phone"`
+	ProfilePicture  string `json:"profilepicture,omitempty"`
+	LinkedinProfile string `json:"linkedin_profile"`
+	TwitterProfile  string `json:"twitter_profile"`
+}
 type Login struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`

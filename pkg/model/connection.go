@@ -19,3 +19,7 @@ type Connection struct {
 	ConnectionUserId int       `json:"connection_user_id"`
 	ConnectedAt      time.Time `json:"connected_at"`
 }
+
+type ConnectionRequestEmail struct {
+	Email string `json:"email"`
+}

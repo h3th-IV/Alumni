@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/jim-nnamdi/jinx/pkg/database/mysql"
+	"github.com/jim-nnamdi/jinx/pkg/model"
 	"github.com/jim-nnamdi/jinx/pkg/utils"
 	"go.uber.org/zap"
 )
@@ -22,6 +24,9 @@ func NewAcceptConnectionRequestHandler(logger *zap.Logger, db mysql.Database) *A
 
 func (handler *AcceptConnectionRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	resp := map[string]interface{}{}
+	var (
+		request *model.ConnectionRequestEmail
+	)
 	userInfo, err := utils.AuthenticateUser(r.Context(), handler.logger, handler.db)
 	if err != nil {
 		resp["err"] = "please sign in to access this page"
@@ -30,10 +35,16 @@ func (handler *AcceptConnectionRequestHandler) ServeHTTP(w http.ResponseWriter, 
 		return
 	}
 
-	email := r.FormValue("email")
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		resp["err"] = "unable to process request"
+		handler.logger.Error("err decoding JSON object", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(resp, loginTTL, nil), http.StatusNotFound)
+		return
+	}
+	email := request.Email
 	if email == "" {
-		resp["err"] = "from_user_id is required"
-		handler.logger.Error("from_user_id missing")
+		resp["err"] = "connection user is missing"
+		handler.logger.Error("connecting email is not provided")
 		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusBadRequest)
 		return
 	}
@@ -60,19 +71,6 @@ func (handler *AcceptConnectionRequestHandler) ServeHTTP(w http.ResponseWriter, 
 		return
 	}
 
-	existingRequest, err := handler.db.CheckPendingConnection(r.Context(), userInfo.Id, recv.Id)
-	if err != nil {
-		resp["err"] = "failed to check pending request"
-		handler.logger.Error("failed to check pending request", zap.Error(err))
-		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusInternalServerError)
-		return
-	}
-	if existingRequest {
-		resp["err"] = "a connection request is already pending with this user"
-		handler.logger.Info("pending connection request exists between users")
-		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusConflict)
-		return
-	}
 	connectionRequest, err := handler.db.GetConnectionRequest(r.Context(), recv.Id, userInfo.Id)
 	if err != nil || connectionRequest.Status != "pending" {
 		resp["err"] = "connection request not found or already processed"
@@ -91,7 +89,7 @@ func (handler *AcceptConnectionRequestHandler) ServeHTTP(w http.ResponseWriter, 
 
 	_, err = handler.db.CreateConnection(r.Context(), userInfo.Id, recv.Id)
 	if err != nil {
-		resp["err"] = "unable to create connection"
+		resp["err"] = "unable to add user to network"
 		handler.logger.Error("failed to create connection", zap.Error(err))
 		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusInternalServerError)
 		return

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/jim-nnamdi/jinx/pkg/database/mysql"
@@ -41,6 +42,7 @@ func (guc *getUserChatsHistoryHandler) ServeHTTP(w http.ResponseWriter, r *http.
 		return
 	}
 
+	fmt.Println(chat.Email)
 	recipientEmail := chat.Email
 	if recipientEmail == "" {
 		chat_resp["err"] = "recipient email is required"

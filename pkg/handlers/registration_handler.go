@@ -75,7 +75,7 @@ func validateEmail(email string) (bool, error) {
 
 func (handler *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var (
-		RegisterUser *model.User
+		RegisterUser *model.Register
 		dataresp     = map[string]interface{}{}
 	)
 
