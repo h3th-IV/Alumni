@@ -37,8 +37,7 @@ func (fs *forumStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	var (
 		author = userInfo.Email
-		afp    = map[string]string{}
-		forum  *model.Forum
+		forum  *model.ForumPost
 	)
 
 	if err := json.NewDecoder(r.Body).Decode(&forum); err != nil {
@@ -51,23 +50,23 @@ func (fs *forumStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	title := forum.Title
 	description := forum.Description
 	if title == "" || description == "" {
-		fs.logger.Error("title | description ")
-		afp["error"] = "empty title or description"
-		apiResponse(w, GetErrorResponseBytes(afp["err"], 30, nil), http.StatusBadRequest)
+		fs.logger.Error("empty title or description")
+		new_forum_response["error"] = "title or description is empty"
+		apiResponse(w, GetErrorResponseBytes(new_forum_response, 30, nil), http.StatusBadRequest)
 		return
 	}
 
 	if len(title) < 5 || len(description) < 50 {
-		afp["error"] = "empty title or description"
-		fs.logger.Error("invalid title length")
-		apiResponse(w, GetErrorResponseBytes(afp["err"], 30, nil), http.StatusBadRequest)
+		new_forum_response["error"] = "title or description is too short"
+		fs.logger.Error("invalid title or description length")
+		apiResponse(w, GetErrorResponseBytes(new_forum_response["err"], 30, nil), http.StatusBadRequest)
 		return
 	}
 
-	if len(description) > 200 {
-		afp["err"] = "max length of description exceeded"
+	if len(description) > 700 {
+		new_forum_response["err"] = "max length of description exceeded"
 		fs.logger.Error("max length of description exceeded")
-		apiResponse(w, GetErrorResponseBytes(afp["err"], 30, nil), http.StatusBadRequest)
+		apiResponse(w, GetErrorResponseBytes(new_forum_response["err"], 30, nil), http.StatusBadRequest)
 		return
 	}
 
@@ -76,8 +75,8 @@ func (fs *forumStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	add_new_forum_post, err := fs.Db.AddNewForumPost(r.Context(), title, description, author, _slug, time.Now(), time.Now())
 	if err != nil {
 		fs.logger.Error("err creating new forum Post", zap.Error(err))
-		afp["error"] = err.Error()
-		apiResponse(w, GetErrorResponseBytes(afp, 30, err), http.StatusInternalServerError)
+		new_forum_response["error"] = err.Error()
+		apiResponse(w, GetErrorResponseBytes(new_forum_response, 30, err), http.StatusInternalServerError)
 		return
 	}
 	if add_new_forum_post {

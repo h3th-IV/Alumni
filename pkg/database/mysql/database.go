@@ -26,8 +26,8 @@ type Database interface {
 
 	/*forum and messages*/
 	AddNewForumPost(ctx context.Context, title string, description string, author string, slug string, created_at time.Time, updated_at time.Time) (bool, error)
-	GetSingleForumPost(ctx context.Context, slug string) (*model.Forum, error)
-	GetAllForums(ctx context.Context) (*[]model.Forum, error)
+	GetSingleForumPost(ctx context.Context, slug string) (*model.ForumPost, error)
+	GetAllForums(ctx context.Context) (*[]model.ForumPost, error)
 	GetCommentsByForumID(ctx context.Context, forumID int) ([]model.Comment, error)
 	SendMessage(ctx context.Context, senderId int, receiverId int, message string, createdAt time.Time, updatedAt time.Time) (bool, error)
 	AddComment(ctx context.Context, userID int, forumID int, comment string) (bool, error)
@@ -45,4 +45,7 @@ type Database interface {
 	GetUserConnections(ctx context.Context, userId int) ([]*model.User, error)
 	CheckIfConnected(ctx context.Context, userID1, userID2 int) (bool, error)
 	CheckPendingConnection(ctx context.Context, fromUserID, toUserID int) (bool, error)
+	RequestGroupMembership(ctx context.Context, group_id, user_id int) (bool, error)
+	UpdateGroupMembershipRequest(ctx context.Context, status string, group_id, user_id int) (bool, error)
+	CheckPendingMembershipRequest(ctx context.Context, group_id int) ([]*model.User, error)
 }

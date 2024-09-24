@@ -2,7 +2,7 @@ package model
 
 import "time"
 
-type Forum struct {
+type ForumPost struct {
 	Id          int       `json:"id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`

@@ -10,6 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var _ http.Handler = &addGroupMemberHandler{}
+
 type addGroupMemberHandler struct {
 	logger *zap.Logger
 	db     mysql.Database

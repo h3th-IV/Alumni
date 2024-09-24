@@ -11,6 +11,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var _ http.Handler = &getUserChatsHistoryHandler{}
+
 type getUserChatsHistoryHandler struct {
 	logger *zap.Logger
 	db     mysql.Database

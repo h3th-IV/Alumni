@@ -19,7 +19,7 @@ CREATE TABLE users (
 --table: portfolio order table
 CREATE TABLE portfolio_orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    type VARCHAR(255) NOT NULL,
+    type VARCHAR(255) NOT NULL, 
     security VARCHAR(255) NOT NULL,
     unit INT NOT NULL,
     status VARCHAR(255),
@@ -98,6 +98,18 @@ CREATE TABLE groupie (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
 );
+
+--table for tracking membership request
+CREATE TABLE group_membership_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    group_id INT,
+    user_id INT,
+    status ENUM('pending', 'accepted', 'declined') DEFAULT 'pending',
+    requested_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (group_id) REFERENCES groupie(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
 
 --table for storing group members
 CREATE TABLE group_members (

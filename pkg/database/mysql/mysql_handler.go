@@ -17,66 +17,72 @@ var (
 )
 
 type mysqlDatabase struct {
-	createUser              *sql.Stmt
-	checkUser               *sql.Stmt
-	getUserByEmail          *sql.Stmt
-	getBySessionKey         *sql.Stmt
-	getUserPortfolios       *sql.Stmt
-	getUserTransactions     *sql.Stmt
-	createNewTransaction    *sql.Stmt
-	addNewForumPost         *sql.Stmt
-	getSingleForumPost      *sql.Stmt
-	getAllForums            *sql.Stmt
-	sendMessage             *sql.Stmt
-	addComment              *sql.Stmt
-	getCommentsByForum      *sql.Stmt
-	createGroup             *sql.Stmt
-	addGroupMember          *sql.Stmt
-	sendGroupMessage        *sql.Stmt
-	getGroupMessages        *sql.Stmt
-	getGroupAdmin           *sql.Stmt
-	checkIfMember           *sql.Stmt
-	getChats                *sql.Stmt
-	createConnectionRequest *sql.Stmt
-	getConnectionRequest    *sql.Stmt
-	updateConnectionRequest *sql.Stmt
-	createConnection        *sql.Stmt
-	getUserConnections      *sql.Stmt
-	checkIfConnected        *sql.Stmt
-	checkPendingConnection  *sql.Stmt
+	createUser                    *sql.Stmt
+	checkUser                     *sql.Stmt
+	getUserByEmail                *sql.Stmt
+	getBySessionKey               *sql.Stmt
+	getUserPortfolios             *sql.Stmt
+	getUserTransactions           *sql.Stmt
+	createNewTransaction          *sql.Stmt
+	addNewForumPost               *sql.Stmt
+	getSingleForumPost            *sql.Stmt
+	getAllForums                  *sql.Stmt
+	sendMessage                   *sql.Stmt
+	addComment                    *sql.Stmt
+	getCommentsByForum            *sql.Stmt
+	createGroup                   *sql.Stmt
+	addGroupMember                *sql.Stmt
+	sendGroupMessage              *sql.Stmt
+	getGroupMessages              *sql.Stmt
+	getGroupAdmin                 *sql.Stmt
+	checkIfMember                 *sql.Stmt
+	getChats                      *sql.Stmt
+	createConnectionRequest       *sql.Stmt
+	getConnectionRequest          *sql.Stmt
+	updateConnectionRequest       *sql.Stmt
+	createConnection              *sql.Stmt
+	getUserConnections            *sql.Stmt
+	checkIfConnected              *sql.Stmt
+	checkPendingConnection        *sql.Stmt
+	requestGroupMembership        *sql.Stmt
+	accept_declineGroupMembership *sql.Stmt
+	checkPendingMembershipRequest *sql.Stmt
 }
 
 func NewMySQLDatabase(db *sql.DB) (*mysqlDatabase, error) {
 	var (
-		createUser              = "INSERT INTO users(username, password, email, degree, grad_year, current_job, phone, session_key, profile_picture, linkedin_profile, twitter_profile) VALUES(?,?,?,?,?,?,?,?,?,?,?);"
-		checkUser               = "SELECT * FROM users WHERE email = ? AND password=?;"
-		getUserByEmail          = "SELECT * FROM users WHERE email = ?;"
-		getBySessionKey         = "SELECT * FROM users WHERE session_key=?;"
-		getUserPortfolios       = "SELECT * FROM portfolio_orders WHERE user_email = ?;"
-		getUserTransactions     = "SELECT * FROM transactions WHERE user_email = ?;"
-		createNewTransaction    = "INSERT INTO transactions(from_user_id, from_user_email, to_user_id, to_user_email, type, created_at, updated_at, amount, user_email) VALUES(?,?,?,?,?,?,?,?,?);"
-		addNewForumPost         = "INSERT INTO forums(title, description, author, slug, created_at, updated_at) VALUES(?,?,?,?,?,?);"
-		getSingleForumPost      = "SELECT * FROM forums WHERE slug = ?;"
-		getAllForums            = "SELECT title, description, author, slug, created_at, updated_at FROM forums;"
-		sendMessage             = "INSERT INTO chat_messages(sender, recipient, message, created_at, updated_at) VALUES(?,?,?,?,?);"
-		addComment              = "INSERT INTO comments(user_id, forum_id, comment) VALUES(?, ?, ?);"
-		getCommentsByForum      = "SELECT c.id, u.username, c.comment, c.created_at FROM comments c JOIN users u ON c.user_id = u.id WHERE c.forum_id = ? ORDER BY c.created_at ASC;"
-		createGroup             = "INSERT INTO groupie (name, created_by) VALUES (?,?);"
-		addGroupMember          = "INSERT INTO group_members (group_id, user_id) VALUES (?, ?);"
-		sendGroupMessage        = "INSERT INTO group_messages (group_id, user_id, message) VALUES (?, ?, ?);"
-		getGroupMessages        = "SELECT gm.id, u.username, gm.message, gm.created_at FROM group_messages gm JOIN users u ON gm.user_id = u.id WHERE gm.group_id = ? ORDER BY gm.created_at ASC;"
-		getGroupAdmin           = "SELECT u.id, u.username, u.email FROM groupie g JOIN users u ON g.created_by = u.id WHERE g.id = ?;"
-		checkIfMember           = "SELECT COUNT(*) FROM group_members WHERE group_id = ? AND user_id = ?;"
-		getChats                = "SELECT id, sender, recipient, message, created_at, updated_at FROM chat_messages WHERE (sender = ? AND recipient = ?) OR (sender = ? AND recipient = ?) ORDER BY created_at ASC;"
-		createConnectionRequest = "INSERT INTO connection_requests (from_id, to_id) VALUES (?, ?);"
-		getConnectionRequest    = "SELECT id, from_id, to_id, status, created_at, updated_at FROM connection_requests WHERE from_id = ? AND to_id = ?;"
-		updateConnectionRequest = "UPDATE connection_requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;"
-		createConnection        = "INSERT INTO connections (user_id, connection_user_id) VALUES (?, ?);"
-		getUserConnections      = "SELECT u.id, u.username, u.email, u.grad_year, u.degree, u.current_job, u.phone, u.linkedin_profile, u.twitter_profile FROM connections c JOIN users u ON u.id = c.connection_user_id WHERE c.user_id = ?;"
-		checkIfConnected        = "SELECT COUNT(*) FROM connections WHERE (user_id = ? AND connection_user_id = ?) OR (user_id = ? AND connection_user_id = ?);"
-		checkPendingConnection  = "SELECT COUNT(*) FROM connection_requests WHERE from_id = ? AND to_id = ? AND status = 'pending';"
-		database                = &mysqlDatabase{}
-		err                     error
+		createUser                     = "INSERT INTO users(username, password, email, degree, grad_year, current_job, phone, session_key, profile_picture, linkedin_profile, twitter_profile) VALUES(?,?,?,?,?,?,?,?,?,?,?);"
+		checkUser                      = "SELECT * FROM users WHERE email = ? AND password=?;"
+		getUserByEmail                 = "SELECT * FROM users WHERE email = ?;"
+		getBySessionKey                = "SELECT * FROM users WHERE session_key=?;"
+		getUserPortfolios              = "SELECT * FROM portfolio_orders WHERE user_email = ?;"
+		getUserTransactions            = "SELECT * FROM transactions WHERE user_email = ?;"
+		createNewTransaction           = "INSERT INTO transactions(from_user_id, from_user_email, to_user_id, to_user_email, type, created_at, updated_at, amount, user_email) VALUES(?,?,?,?,?,?,?,?,?);"
+		addNewForumPost                = "INSERT INTO forums(title, description, author, slug, created_at, updated_at) VALUES(?,?,?,?,?,?);"
+		getSingleForumPost             = "SELECT * FROM forums WHERE slug = ?;"
+		getAllForums                   = "SELECT title, description, author, slug, created_at, updated_at FROM forums;"
+		sendMessage                    = "INSERT INTO chat_messages(sender, recipient, message, created_at, updated_at) VALUES(?,?,?,?,?);"
+		addComment                     = "INSERT INTO comments(user_id, forum_id, comment) VALUES(?, ?, ?);"
+		getCommentsByForum             = "SELECT c.id, u.username, c.comment, c.created_at FROM comments c JOIN users u ON c.user_id = u.id WHERE c.forum_id = ? ORDER BY c.created_at ASC;"
+		createGroup                    = "INSERT INTO groupie (name, created_by) VALUES (?,?);"
+		addGroupMember                 = "INSERT INTO group_members (group_id, user_id) VALUES (?, ?);"
+		sendGroupMessage               = "INSERT INTO group_messages (group_id, user_id, message) VALUES (?, ?, ?);"
+		getGroupMessages               = "SELECT gm.id, u.username, gm.message, gm.created_at FROM group_messages gm JOIN users u ON gm.user_id = u.id WHERE gm.group_id = ? ORDER BY gm.created_at ASC;"
+		getGroupAdmin                  = "SELECT u.id, u.username, u.email FROM groupie g JOIN users u ON g.created_by = u.id WHERE g.id = ?;"
+		checkIfMember                  = "SELECT COUNT(*) FROM group_members WHERE group_id = ? AND user_id = ?;"
+		getChats                       = "SELECT id, sender, recipient, message, created_at, updated_at FROM chat_messages WHERE (sender = ? AND recipient = ?) OR (sender = ? AND recipient = ?) ORDER BY created_at ASC;"
+		createConnectionRequest        = "INSERT INTO connection_requests (from_id, to_id) VALUES (?, ?);"
+		getConnectionRequest           = "SELECT id, from_id, to_id, status, created_at, updated_at FROM connection_requests WHERE from_id = ? AND to_id = ?;"
+		updateConnectionRequest        = "UPDATE connection_requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;"
+		createConnection               = "INSERT INTO connections (user_id, connection_user_id) VALUES (?, ?);"
+		getUserConnections             = "SELECT u.id, u.username, u.email, u.grad_year, u.degree, u.current_job, u.phone, u.linkedin_profile, u.twitter_profile FROM connections c JOIN users u ON u.id = c.connection_user_id WHERE c.user_id = ?;"
+		checkIfConnected               = "SELECT COUNT(*) FROM connections WHERE (user_id = ? AND connection_user_id = ?) OR (user_id = ? AND connection_user_id = ?);"
+		checkPendingConnection         = "SELECT COUNT(*) FROM connection_requests WHERE from_id = ? AND to_id = ? AND status = 'pending';"
+		requestGroupMembership         = "INSERT INTO group_membership_requests (group_id, user_id) VALUES (?, ?);"
+		accept_decline_GroupMembership = "UPDATE group_membership_requests SET status = ? WHERE group_id = ? AND user_id = ?;"
+		checkPendingMembershipRequest  = "SELECT u.id, u.username, u.email, u.degree, u.grad_year, u.current_job, u.phone, u.profile_picture, u.linkedin_profile, u.twitter_profile, u.created_at, u.updated_at FROM group_membership_requests gmr JOIN users u ON gmr.user_id = u.id WHERE gmr.group_id = ? AND gmr.status = 'pending';"
+		database                       = &mysqlDatabase{}
+		err                            error
 	)
 	if database.createUser, err = db.Prepare(createUser); err != nil {
 		return nil, err
@@ -157,6 +163,15 @@ func NewMySQLDatabase(db *sql.DB) (*mysqlDatabase, error) {
 		return nil, err
 	}
 	if database.checkPendingConnection, err = db.Prepare(checkPendingConnection); err != nil {
+		return nil, err
+	}
+	if database.requestGroupMembership, err = db.Prepare(requestGroupMembership); err != nil {
+		return nil, err
+	}
+	if database.accept_declineGroupMembership, err = db.Prepare(accept_decline_GroupMembership); err != nil {
+		return nil, err
+	}
+	if database.checkPendingMembershipRequest, err = db.Prepare(checkPendingMembershipRequest); err != nil {
 		return nil, err
 	}
 	return database, nil
@@ -290,8 +305,8 @@ func (db *mysqlDatabase) SendMessage(ctx context.Context, senderId int, receiver
 	return true, nil
 }
 
-func (db *mysqlDatabase) GetSingleForumPost(ctx context.Context, slug string) (*model.Forum, error) {
-	forum := &model.Forum{}
+func (db *mysqlDatabase) GetSingleForumPost(ctx context.Context, slug string) (*model.ForumPost, error) {
+	forum := &model.ForumPost{}
 	getForumBySlug := db.getSingleForumPost.QueryRowContext(ctx, slug)
 	err := getForumBySlug.Scan(&forum.Id, &forum.Title, &forum.Description, &forum.Author, &forum.Slug, &forum.CreatedAt, &forum.UpdatedAt)
 	if err != nil {
@@ -300,9 +315,9 @@ func (db *mysqlDatabase) GetSingleForumPost(ctx context.Context, slug string) (*
 	return forum, nil
 }
 
-func (db *mysqlDatabase) GetAllForums(ctx context.Context) (*[]model.Forum, error) {
-	var forum = model.Forum{}
-	var forums = []model.Forum{}
+func (db *mysqlDatabase) GetAllForums(ctx context.Context) (*[]model.ForumPost, error) {
+	var forum = model.ForumPost{}
+	var forums = []model.ForumPost{}
 	getForums, err := db.getAllForums.QueryContext(ctx)
 	if err != nil {
 		return nil, err
@@ -565,6 +580,58 @@ func (db *mysqlDatabase) CheckPendingConnection(ctx context.Context, fromUserID,
 	return count > 0, nil
 }
 
+func (db *mysqlDatabase) RequestGroupMembership(ctx context.Context, group_id, user_id int) (bool, error) {
+	requst, err := db.requestGroupMembership.ExecContext(ctx, group_id, user_id)
+	if err != nil {
+		log.Printf("%v", err)
+		return false, err
+	}
+	req_lid, err := requst.LastInsertId()
+	if err != nil {
+		return false, err
+	}
+	if req_lid <= 0 {
+		return false, err
+	}
+	return true, err
+}
+
+func (db *mysqlDatabase) UpdateGroupMembershipRequest(ctx context.Context, status string, group_id, user_id int) (bool, error) {
+	accept, err := db.accept_declineGroupMembership.ExecContext(ctx, group_id, user_id)
+	if err != nil {
+		log.Printf("%v", err)
+		return false, err
+	}
+	a_lid, err := accept.LastInsertId()
+	if err != nil {
+		return false, err
+	}
+	if a_lid <= 0 {
+		return false, err
+	}
+	return true, err
+}
+
+func (db *mysqlDatabase) CheckPendingMembershipRequest(ctx context.Context, group_id int) ([]*model.User, error) {
+	var pendingRequests []*model.User
+	pendings, err := db.checkPendingMembershipRequest.QueryContext(ctx, group_id)
+	if err != nil {
+		log.Printf("%v", err)
+		return nil, err
+	}
+	defer pendings.Close()
+	for pendings.Next() {
+		var pendingRequest model.User
+		err := pendings.Scan(&pendingRequest.Id, &pendingRequest.Username, &pendingRequest.Email, &pendingRequest.Degree, &pendingRequest.GradYear, &pendingRequest.CurrentJob, &pendingRequest.Phone, &pendingRequest.ProfilePicture, &pendingRequest.LinkedinProfile, &pendingRequest.TwitterProfile, &pendingRequest.CreatedAt, &pendingRequest.UpdatedAt)
+		if err != nil {
+			log.Printf("%v", err)
+			return nil, err
+		}
+		pendingRequests = append(pendingRequests, &pendingRequest)
+	}
+	return pendingRequests, nil
+}
+
 func (db *mysqlDatabase) Close() error {
 	db.createUser.Close()
 	db.checkUser.Close()
@@ -591,5 +658,8 @@ func (db *mysqlDatabase) Close() error {
 	db.updateConnectionRequest.Close()
 	db.checkIfConnected.Close()
 	db.checkPendingConnection.Close()
+	db.requestGroupMembership.Close()
+	db.accept_declineGroupMembership.Close()
+	db.checkPendingMembershipRequest.Close()
 	return nil
 }

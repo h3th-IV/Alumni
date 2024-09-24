@@ -53,6 +53,7 @@ func (fs *sforumStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if get_single_forum_post != nil {
 		forum_resp := map[string]interface{}{}
 		forum_resp["id"] = get_single_forum_post.Id
+		forum_resp["author"] = get_single_forum_post.Author
 		forum_resp["title"] = get_single_forum_post.Title
 		forum_resp["description"] = get_single_forum_post.Description
 		forum_resp["slug"] = get_single_forum_post.Slug
