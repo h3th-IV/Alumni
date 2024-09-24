@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -27,7 +28,8 @@ func NewUpdateMembershipHandler(logger *zap.Logger, db mysql.Database) *UpdateMe
 func (handler *UpdateMembershipHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	resp := map[string]interface{}{}
 
-	userInfo, err := utils.AuthenticateUser(r.Context(), handler.logger, handler.db)
+	//admin auth
+	userInfo, err := utils.AuthenticateUser(r.Context(), handler.logger, handler.db) //get the admin
 	if err != nil {
 		resp["err"] = "please sign in"
 		handler.logger.Error("unauthorized user")
@@ -44,17 +46,48 @@ func (handler *UpdateMembershipHandler) ServeHTTP(w http.ResponseWriter, r *http
 		return
 	}
 
-	var status struct {
+	var requestMembership struct {
 		Status string `json:"status"`
+		Email  string `json:"email"` //the new member email
 	}
-	if err := json.NewDecoder(r.Body).Decode(&status); err != nil {
+	admin, err := handler.db.GetGroupCreator(r.Context(), groupID)
+	if err != nil {
+		resp["err"] = "unable to proceed"
+		handler.logger.Error("err fetching group admin")
+		apiResponse(w, GetErrorResponseBytes(resp["err"], 30, nil), http.StatusUnauthorized)
+		return
+	}
+	if admin.Id != userInfo.Id {
+		log.Printf("%d, %d", admin.Id, userInfo.Id)
+		resp["err"] = "you are not allowed to accept or decline members to this group"
+		handler.logger.Warn("admin, user IDs do not match")
+		apiResponse(w, GetErrorResponseBytes(resp["err"], 30, nil), http.StatusUnauthorized)
+		return
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestMembership); err != nil {
 		resp["err"] = "unable to process request"
 		handler.logger.Error("error decoding JSON request", zap.Error(err))
 		apiResponse(w, GetErrorResponseBytes(resp["err"], 30, nil), http.StatusBadRequest)
 		return
 	}
 
-	success, err := handler.db.UpdateGroupMembershipRequest(r.Context(), status.Status, groupID, userInfo.Id)
+	email := requestMembership.Email
+	if email == "" {
+		resp["err"] = "recipient email is required"
+		handler.logger.Error("email is missing")
+		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusBadRequest)
+		return
+	}
+	newMember, err := handler.db.GetUserByEmail(r.Context(), email)
+	if err != nil {
+		resp["err"] = "user not found"
+		handler.logger.Error("err", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusBadRequest)
+		return
+	}
+
+	success, err := handler.db.UpdateGroupMembershipRequest(r.Context(), requestMembership.Status, groupID, newMember.Id)
 	if err != nil || !success {
 		resp["err"] = "unable to update membership request"
 		handler.logger.Error("failed to update membership", zap.Error(err))

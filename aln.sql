@@ -19,7 +19,7 @@ CREATE TABLE users (
 --table: portfolio order table
 CREATE TABLE portfolio_orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    type VARCHAR(255) NOT NULL, 
+    type VARCHAR(255) NOT NULL,
     security VARCHAR(255) NOT NULL,
     unit INT NOT NULL,
     status VARCHAR(255),

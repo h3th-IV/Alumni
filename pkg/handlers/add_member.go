@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -24,53 +25,64 @@ func NewAddGroupMemberHandler(logger *zap.Logger, db mysql.Database) *addGroupMe
 	}
 }
 
-func (agh *addGroupMemberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	agh_resp := map[string]interface{}{}
-	userInfo, err := utils.AuthenticateUser(r.Context(), agh.logger, agh.db)
+func (handler *addGroupMemberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	resp := map[string]interface{}{}
+	var new_user_email struct {
+		Email string `json:"email"`
+	}
+	userInfo, err := utils.AuthenticateUser(r.Context(), handler.logger, handler.db)
 	if err != nil {
-		agh_resp["err"] = "please sign in to access this page"
-		agh.logger.Error("unauthorized user")
-		apiResponse(w, GetErrorResponseBytes(agh_resp["err"], 30, nil), http.StatusUnauthorized)
+		resp["err"] = "please sign in to access this page"
+		handler.logger.Error("unauthorized user")
+		apiResponse(w, GetErrorResponseBytes(resp["err"], 30, nil), http.StatusUnauthorized)
 		return
 	}
-	groupID, err := strconv.Atoi(r.FormValue("group_id"))
+	groupId := r.URL.Query().Get("group_id")
+	groupID, err := strconv.Atoi(groupId)
 	if err != nil {
-		agh_resp["err"] = "unable to process request"
-		agh.logger.Error("err ", zap.Error(err))
-		apiResponse(w, GetErrorResponseBytes(agh_resp, 30, nil), http.StatusUnauthorized)
-		return
-	}
-
-	newUser, err := strconv.Atoi(r.FormValue("user_id"))
-	if err != nil {
-		agh_resp["err"] = "unable to process request"
-		agh.logger.Error("err ", zap.Error(err))
-		apiResponse(w, GetErrorResponseBytes(agh_resp, 30, nil), http.StatusUnauthorized)
+		resp["err"] = "invalid group ID"
+		handler.logger.Error("error converting groupID to int", zap.String("group_id", groupId))
+		apiResponse(w, GetErrorResponseBytes(resp["err"], 30, nil), http.StatusBadRequest)
 		return
 	}
 
-	admin, err := agh.db.GetGroupCreator(r.Context(), groupID)
+	if err := json.NewDecoder(r.Body).Decode(&new_user_email); err != nil {
+		resp["err"] = "unable to process request"
+		handler.logger.Error("err decoding JSON object", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(resp, loginTTL, nil), http.StatusNotFound)
+		return
+	}
+
+	email := new_user_email.Email
+	newUser, err := handler.db.GetUserByEmail(r.Context(), email)
 	if err != nil {
-		agh_resp["err"] = "unable to proceed"
-		agh.logger.Error("err fetching group admin")
-		apiResponse(w, GetErrorResponseBytes(agh_resp["err"], 30, nil), http.StatusUnauthorized)
+		resp["err"] = "user does not exist"
+		handler.logger.Error("use does not exist", zap.Any("checkuser", err))
+		apiResponse(w, GetErrorResponseBytes(resp["err"], 30, nil), http.StatusNotFound)
+		return
+	}
+	admin, err := handler.db.GetGroupCreator(r.Context(), groupID)
+	if err != nil {
+		resp["err"] = "unable to proceed"
+		handler.logger.Error("err fetching group admin")
+		apiResponse(w, GetErrorResponseBytes(resp["err"], 30, nil), http.StatusUnauthorized)
 		return
 	}
 	if admin.Id != userInfo.Id {
 		log.Printf("%d, %d", admin.Id, userInfo.Id)
-		agh_resp["err"] = "you are not allowed to add members to this group"
-		agh.logger.Warn("admin, user IDs do not match")
-		apiResponse(w, GetErrorResponseBytes(agh_resp["err"], 30, nil), http.StatusUnauthorized)
+		resp["err"] = "you are not allowed to add members to this group"
+		handler.logger.Warn("admin, user IDs do not match")
+		apiResponse(w, GetErrorResponseBytes(resp["err"], 30, nil), http.StatusUnauthorized)
 		return
 	}
 
-	success, err := agh.db.AddGroupMember(r.Context(), groupID, newUser)
+	success, err := handler.db.AddGroupMember(r.Context(), groupID, newUser.Id)
 	if err != nil || !success {
-		agh_resp["err"] = "unable to add user to group"
-		agh.logger.Error("admin, user IDs do not match")
-		apiResponse(w, GetErrorResponseBytes(agh_resp["err"], 30, nil), http.StatusUnauthorized)
+		resp["err"] = "unable to add user to group"
+		handler.logger.Error("admin, user IDs do not match")
+		apiResponse(w, GetErrorResponseBytes(resp["err"], 30, nil), http.StatusUnauthorized)
 		return
 	}
-	agh_resp["message"] = "user added to group successfully"
-	apiResponse(w, GetSuccessResponse(agh_resp, 30), http.StatusOK)
+	resp["message"] = "user added to group successfully"
+	apiResponse(w, GetSuccessResponse(resp, 30), http.StatusOK)
 }

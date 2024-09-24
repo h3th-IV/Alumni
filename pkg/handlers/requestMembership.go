@@ -33,7 +33,7 @@ func (handler *RequestMembershipHandler) ServeHTTP(w http.ResponseWriter, r *htt
 		return
 	}
 
-	groupId := r.URL.Query().Get("forum_id")
+	groupId := r.URL.Query().Get("group_id")
 	if groupId == "" {
 		resp["err"] = "group ID is required"
 		handler.logger.Error("group ID missing")

@@ -435,8 +435,6 @@ func (db *mysqlDatabase) GetGroupMessages(ctx context.Context, groupID int) ([]m
 
 func (db *mysqlDatabase) GetGroupCreator(ctx context.Context, groupID int) (*model.User, error) {
 	user := &model.User{}
-
-	// Execute the query
 	row := db.getGroupAdmin.QueryRowContext(ctx, groupID)
 	err := row.Scan(&user.Id, &user.Username, &user.Email)
 	if err != nil {
@@ -450,7 +448,7 @@ func (db *mysqlDatabase) GetGroupCreator(ctx context.Context, groupID int) (*mod
 	return user, nil
 }
 
-// CheckGroupMembership checks if a user is a member of a specific group.
+
 func (db *mysqlDatabase) CheckGroupMembership(ctx context.Context, groupID int, userID int) (bool, error) {
 	var count int
 	err := db.checkIfMember.QueryRowContext(ctx, groupID, userID).Scan(&count)
