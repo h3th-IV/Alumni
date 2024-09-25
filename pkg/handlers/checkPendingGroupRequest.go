@@ -58,7 +58,7 @@ func (handler *FetchPendingMembershipRequestsHandler) ServeHTTP(w http.ResponseW
 		return
 	}
 
-	users, err := handler.db.CheckPendingMembershipRequest(r.Context(), groupID)
+	users, err := handler.db.FetchPendingMembershipRequest(r.Context(), groupID)
 	if err != nil {
 		resp["err"] = "unable to fetch pending requests"
 		handler.logger.Error("error fetching pending requests", zap.Error(err))

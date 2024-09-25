@@ -49,6 +49,35 @@ func (handler *RequestMembershipHandler) ServeHTTP(w http.ResponseWriter, r *htt
 		return
 	}
 
+	//check if already a memebet
+	membered, err := handler.db.CheckGroupMembership(r.Context(), groupID, userInfo.Id)
+	if err != nil {
+		resp["err"] = "unable to check memebership status"
+		handler.logger.Error("error checking group membership", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusInternalServerError)
+		return
+	}
+	if membered {
+		resp["warning"] = "you are already a member of this group"
+		handler.logger.Warn("user is already a group member")
+		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusConflict)
+		return
+	}
+	//chck if pending request
+	pended, err := handler.db.CheckPendingMembershipRequest(r.Context(), groupID, userInfo.Id)
+	if err != nil {
+		resp["err"] = "unable to check pending request"
+		handler.logger.Error("error checking pending membership request", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusInternalServerError)
+		return
+	}
+
+	if pended {
+		resp["err"] = "you already have a pending membership request for this group"
+		handler.logger.Warn("user has a pending membership request")
+		apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusConflict)
+		return
+	}
 	success, err := handler.db.RequestGroupMembership(r.Context(), groupID, userInfo.Id)
 	if err != nil || !success {
 		resp["err"] = "unable to request membership"

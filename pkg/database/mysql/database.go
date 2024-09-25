@@ -47,5 +47,7 @@ type Database interface {
 	CheckPendingConnection(ctx context.Context, fromUserID, toUserID int) (bool, error)
 	RequestGroupMembership(ctx context.Context, group_id, user_id int) (bool, error)
 	UpdateGroupMembershipRequest(ctx context.Context, status string, group_id, user_id int) (bool, error)
-	CheckPendingMembershipRequest(ctx context.Context, group_id int) ([]*model.User, error)
+	FetchPendingMembershipRequest(ctx context.Context, group_id int) ([]*model.User, error)
+	DeclineMembershipRequest(ctx context.Context, groupID, userID int) (bool, error)
+	CheckPendingMembershipRequest(ctx context.Context, groupID, userID int) (bool, error)
 }

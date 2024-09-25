@@ -59,15 +59,23 @@ func (handler *UpdateMembershipHandler) ServeHTTP(w http.ResponseWriter, r *http
 	}
 	if admin.Id != userInfo.Id {
 		log.Printf("%d, %d", admin.Id, userInfo.Id)
-		resp["err"] = "you are not allowed to accept or decline members to this group"
-		handler.logger.Warn("admin, user IDs do not match")
-		apiResponse(w, GetErrorResponseBytes(resp["err"], 30, nil), http.StatusUnauthorized)
+		resp["err"] = "you are not allowed to manage this group"
+		handler.logger.Warn("admin and user IDs do not match", zap.Int("admin_id", admin.Id), zap.Int("user_id", userInfo.Id))
+		apiResponse(w, GetErrorResponseBytes(resp["err"], 30, nil), http.StatusForbidden)
 		return
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&requestMembership); err != nil {
 		resp["err"] = "unable to process request"
 		handler.logger.Error("error decoding JSON request", zap.Error(err))
+		apiResponse(w, GetErrorResponseBytes(resp["err"], 30, nil), http.StatusBadRequest)
+		return
+	}
+
+	status := requestMembership.Status
+	if status != "accepted" && status != "declined" {
+		resp["err"] = "invalid status value, must be 'accept' or 'decline'"
+		handler.logger.Warn("invalid status provided", zap.String("status", status))
 		apiResponse(w, GetErrorResponseBytes(resp["err"], 30, nil), http.StatusBadRequest)
 		return
 	}
@@ -87,7 +95,7 @@ func (handler *UpdateMembershipHandler) ServeHTTP(w http.ResponseWriter, r *http
 		return
 	}
 
-	success, err := handler.db.UpdateGroupMembershipRequest(r.Context(), requestMembership.Status, groupID, newMember.Id)
+	success, err := handler.db.UpdateGroupMembershipRequest(r.Context(), status, groupID, newMember.Id)
 	if err != nil || !success {
 		resp["err"] = "unable to update membership request"
 		handler.logger.Error("failed to update membership", zap.Error(err))
@@ -95,6 +103,27 @@ func (handler *UpdateMembershipHandler) ServeHTTP(w http.ResponseWriter, r *http
 		return
 	}
 
-	resp["message"] = "membership request updated successfully"
-	apiResponse(w, GetSuccessResponse(resp, 30), http.StatusOK)
+	// If status is "accept", add the member to the group
+	if status == "accepted" {
+		success, err := handler.db.AddGroupMember(r.Context(), groupID, newMember.Id)
+		if err != nil || !success {
+			resp["err"] = "unable to add new member to group"
+			handler.logger.Error("failed to add new member to group", zap.Error(err))
+			apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusInternalServerError)
+			return
+		}
+		resp["message"] = "membership request accepted"
+		apiResponse(w, GetSuccessResponse(resp, 30), http.StatusOK)
+	} else {
+		decline, err := handler.db.DeclineMembershipRequest(r.Context(), groupID, newMember.Id)
+		if err != nil || !decline {
+			resp["err"] = "unable to decline membership access"
+			handler.logger.Error("failed to decline membership group", zap.Error(err))
+			apiResponse(w, GetErrorResponseBytes(resp, 30, nil), http.StatusInternalServerError)
+			return
+		}
+		resp["message"] = "membership request declined"
+		apiResponse(w, GetSuccessResponse(resp, 30), http.StatusOK)
+	}
+
 }

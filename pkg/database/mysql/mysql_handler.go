@@ -46,6 +46,8 @@ type mysqlDatabase struct {
 	checkPendingConnection        *sql.Stmt
 	requestGroupMembership        *sql.Stmt
 	accept_declineGroupMembership *sql.Stmt
+	fetchPendingMembershipRequest *sql.Stmt
+	declineRequest                *sql.Stmt
 	checkPendingMembershipRequest *sql.Stmt
 }
 
@@ -80,7 +82,9 @@ func NewMySQLDatabase(db *sql.DB) (*mysqlDatabase, error) {
 		checkPendingConnection         = "SELECT COUNT(*) FROM connection_requests WHERE from_id = ? AND to_id = ? AND status = 'pending';"
 		requestGroupMembership         = "INSERT INTO group_membership_requests (group_id, user_id) VALUES (?, ?);"
 		accept_decline_GroupMembership = "UPDATE group_membership_requests SET status = ? WHERE group_id = ? AND user_id = ?;"
-		checkPendingMembershipRequest  = "SELECT u.id, u.username, u.email, u.degree, u.grad_year, u.current_job, u.phone, u.profile_picture, u.linkedin_profile, u.twitter_profile, u.created_at, u.updated_at FROM group_membership_requests gmr JOIN users u ON gmr.user_id = u.id WHERE gmr.group_id = ? AND gmr.status = 'pending';"
+		fetchPendingMembershipRequest  = "SELECT u.id, u.username, u.email, u.degree, u.grad_year, u.current_job, u.phone, u.profile_picture, u.linkedin_profile, u.twitter_profile, u.created_at, u.updated_at FROM group_membership_requests gmr JOIN users u ON gmr.user_id = u.id WHERE gmr.group_id = ? AND gmr.status = 'pending';"
+		declineRequest                 = "DELETE FROM group_membership_requests WHERE group_id = ? AND user_id = ?;" //removes the user from the pending list
+		checkPendingMemebershipRequest = "SELECT COUNT(*) FROM group_membership_requests WHERE group_id = ? AND user_id = ? AND status = 'pending';"
 		database                       = &mysqlDatabase{}
 		err                            error
 	)
@@ -171,7 +175,13 @@ func NewMySQLDatabase(db *sql.DB) (*mysqlDatabase, error) {
 	if database.accept_declineGroupMembership, err = db.Prepare(accept_decline_GroupMembership); err != nil {
 		return nil, err
 	}
-	if database.checkPendingMembershipRequest, err = db.Prepare(checkPendingMembershipRequest); err != nil {
+	if database.fetchPendingMembershipRequest, err = db.Prepare(fetchPendingMembershipRequest); err != nil {
+		return nil, err
+	}
+	if database.declineRequest, err = db.Prepare(declineRequest); err != nil {
+		return nil, err
+	}
+	if database.checkPendingMembershipRequest, err = db.Prepare(checkPendingMemebershipRequest); err != nil {
 		return nil, err
 	}
 	return database, nil
@@ -448,7 +458,6 @@ func (db *mysqlDatabase) GetGroupCreator(ctx context.Context, groupID int) (*mod
 	return user, nil
 }
 
-
 func (db *mysqlDatabase) CheckGroupMembership(ctx context.Context, groupID int, userID int) (bool, error) {
 	var count int
 	err := db.checkIfMember.QueryRowContext(ctx, groupID, userID).Scan(&count)
@@ -594,25 +603,27 @@ func (db *mysqlDatabase) RequestGroupMembership(ctx context.Context, group_id, u
 	return true, err
 }
 
-func (db *mysqlDatabase) UpdateGroupMembershipRequest(ctx context.Context, status string, group_id, user_id int) (bool, error) {
-	accept, err := db.accept_declineGroupMembership.ExecContext(ctx, group_id, user_id)
+func (db *mysqlDatabase) UpdateGroupMembershipRequest(ctx context.Context, status string, group_id int, user_id int) (bool, error) {
+	accept, err := db.accept_declineGroupMembership.ExecContext(ctx, status, group_id, user_id)
 	if err != nil {
+		log.Println("here here")
 		log.Printf("%v", err)
 		return false, err
 	}
-	a_lid, err := accept.LastInsertId()
+	a_lid, err := accept.RowsAffected()
 	if err != nil {
 		return false, err
 	}
 	if a_lid <= 0 {
+		log.Println("or here")
 		return false, err
 	}
-	return true, err
+	return true, nil
 }
 
-func (db *mysqlDatabase) CheckPendingMembershipRequest(ctx context.Context, group_id int) ([]*model.User, error) {
+func (db *mysqlDatabase) FetchPendingMembershipRequest(ctx context.Context, group_id int) ([]*model.User, error) {
 	var pendingRequests []*model.User
-	pendings, err := db.checkPendingMembershipRequest.QueryContext(ctx, group_id)
+	pendings, err := db.fetchPendingMembershipRequest.QueryContext(ctx, group_id)
 	if err != nil {
 		log.Printf("%v", err)
 		return nil, err
@@ -630,6 +641,32 @@ func (db *mysqlDatabase) CheckPendingMembershipRequest(ctx context.Context, grou
 	return pendingRequests, nil
 }
 
+func (db *mysqlDatabase) DeclineMembershipRequest(ctx context.Context, groupID, userID int) (bool, error) {
+	res, err := db.declineRequest.ExecContext(ctx, groupID, userID)
+	if err != nil {
+		return false, err
+	}
+	res_rwa, err := res.RowsAffected()
+	if err != nil {
+		log.Printf("err: %v", err)
+		return false, err
+	}
+	if res_rwa <= 0 {
+		log.Printf("rws affected: %d", res_rwa)
+		return false, err
+	}
+	return true, nil
+}
+
+func (db *mysqlDatabase) CheckPendingMembershipRequest(ctx context.Context, groupID, userID int) (bool, error) {
+	var count int
+	err := db.checkPendingMembershipRequest.QueryRowContext(ctx, groupID, userID).Scan(&count)
+	if err != nil {
+		log.Printf("err checking pending membership request:%v", err)
+		return false, err
+	}
+	return count > 0, nil
+}
 func (db *mysqlDatabase) Close() error {
 	db.createUser.Close()
 	db.checkUser.Close()
@@ -658,6 +695,8 @@ func (db *mysqlDatabase) Close() error {
 	db.checkPendingConnection.Close()
 	db.requestGroupMembership.Close()
 	db.accept_declineGroupMembership.Close()
+	db.fetchPendingMembershipRequest.Close()
+	db.declineRequest.Close()
 	db.checkPendingMembershipRequest.Close()
 	return nil
 }
